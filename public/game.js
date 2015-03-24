@@ -35,8 +35,8 @@ function game(isMaster) {
 	generateTrackGeometry(gl);
 	
 	var programs = createPrograms(gl, {
-		white: ['map', 'white'],
 		bg: ['fullscreen', 'bg'],
+		line: ['line', 'line'],
 		touch: ['billboard', 'touch'],
 	});
 	
@@ -198,25 +198,30 @@ function game(isMaster) {
 		
 		gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
 
+
 		gl.enable(gl.DEPTH_TEST);
 		gl.depthMask(true);
 
-		gl.useProgram(programs.white.id);
-		gl.uniformMatrix4fv(programs.white.projectionViewMatrix, false, cameraProjectionViewMatrix);
-		var worldMatrix = mat4.create();
-		gl.uniformMatrix4fv(programs.white.worldMatrix, false, worldMatrix);
-		gl.uniform1f(programs.white.currentTime, musicalTime);
+		gl.useProgram(programs.line.id);
+		gl.uniformMatrix4fv(programs.line.projectionViewMatrix, false, cameraProjectionViewMatrix);
+		gl.uniform1f(programs.line.cameraAspect, cameraAspect);
+		gl.uniform1f(programs.line.currentTime, musicalTime);
 		
+		var size = Float32Array.BYTES_PER_ELEMENT * 8;
 		song.tracks.forEach(function(track) {
 			gl.bindBuffer(gl.ARRAY_BUFFER, track.attributes);
-			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, track.indexes);
-			gl.enableVertexAttribArray(programs.white.position);
-			gl.vertexAttribPointer(programs.white.position, 3, gl.FLOAT, false, Float32Array.BYTES_PER_ELEMENT * 4, 0);
-			gl.enableVertexAttribArray(programs.white.time);
-			gl.vertexAttribPointer(programs.white.time, 1, gl.FLOAT, false, Float32Array.BYTES_PER_ELEMENT * 4, Float32Array.BYTES_PER_ELEMENT * 3);
-			gl.drawElements(gl.TRIANGLES, track.elements, gl.UNSIGNED_SHORT, 0);
-			// gl.drawArrays(gl.LINE_STRIP, 0, (track.resolution + 1)*8+2);
+			gl.enableVertexAttribArray(programs.line.position);
+			gl.vertexAttribPointer(programs.line.position, 3, gl.FLOAT, false, size, 0);
+			gl.enableVertexAttribArray(programs.line.direction);
+			gl.vertexAttribPointer(programs.line.direction, 3, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 3);
+			gl.enableVertexAttribArray(programs.line.halfThickness);
+			gl.vertexAttribPointer(programs.line.halfThickness, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 6);
+			gl.enableVertexAttribArray(programs.line.time);
+			gl.vertexAttribPointer(programs.line.time, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 7);
+			gl.drawArrays(gl.TRIANGLE_STRIP, 0, track.vertexCount);
+			// gl.drawArrays(gl.LINE_STRIP, 0, track.vertexCount);
 		})
+
 
 		gl.disable(gl.DEPTH_TEST);
 		gl.depthMask(false);

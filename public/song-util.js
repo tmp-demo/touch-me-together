@@ -13,15 +13,8 @@ function bezier1(track, axis, t) {
 			(track.p3[axis] - track.p2[axis]) * t * t * 3;
 }
 
-function bezier2(track, axis, t) {
-	var T = 1 - t;
-	return	(track.p2[axis] - 2 * track.p1[axis] + track.p0[axis]) * T * 6 +
-			(track.p3[axis] - 2 * track.p2[axis] + track.p1[axis]) * t * 6;
-}
-
 function generateTrackGeometry(gl) {
-	var radius = 0.1;
-	var segments = 8;
+	var halfThickness = 0.05;
 
 	song.tracks.forEach(function(track) {
 		var attributes = [];
@@ -35,63 +28,21 @@ function generateTrackGeometry(gl) {
 			var t = i / div;
 			var at = track.from + (track.to - track.from) * t;
 			var c = [bezier(track, 0, t), bezier(track, 1, t), bezier(track, 2, t)];
-			var C = vec3.create();
-			vec3.negate(C, c);
 			var a = [bezier1(track, 0, t), bezier1(track, 1, t), bezier1(track, 2, t)];
 			vec3.normalize(a, a);
-			var d = [bezier2(track, 0, t), bezier2(track, 1, t), bezier2(track, 2, t)];
-			vec3.cross(d, a, d);
-			vec3.normalize(d, d);
-			var n = vec3.create();
-			vec3.scaleAndAdd(n, c, d, radius);
-			var m = mat4.create();
-			mat4.translate(m, m, c);
-			mat4.rotate(m, m, Math.PI * 2 / segments, a);
-			mat4.translate(m, m, C);
+			vec3.add(a, a, c);
 
-			if (i === 0 || i === div)
-				console.log(c, n);
-			for (var s = 0; s < segments; ++s) {
-				attributes.push(n[0], n[1], n[2], at);
-				vec3.transformMat4(n, n, m);
+			for (var s = 0; s < 2; ++s) {
+				attributes.push(c[0], c[1], c[2], a[0], a[1], a[2], s === 0 ? halfThickness : -halfThickness, at);
 			}
-			if (i === 0 || i === div)
-				console.log(c, n);
-
-			if (i === 0) {
-				vec3.scaleAndAdd(r0, c, a, -radius);
-				// console.log(n);
-			}
-			if (i === div){
-				vec3.scaleAndAdd(r1, c, a, radius);
-				// console.log(n);
-			}
-		}
-
-		attributes.push(r0[0], r0[1], r0[2], track.from);
-		attributes.push(r1[0], r1[1], r1[2], track.to);
-
-		for (var s = 0; s < segments; ++s) {
-			for (var i = 0; i < div; ++i) {
-				indexes.push(i * segments + s, i * segments + (s + 1) % segments, (i + 1) * segments + s);
-				indexes.push((i + 1) * segments + s, i * segments + (s + 1) % segments, (i + 1) * segments + (s + 1) % segments);
-			}
-
-			indexes.push((div + 1) * segments, (s + 1) % segments, s);
-			indexes.push((div + 1) * segments + 1, div * segments + s, div * segments + (s + 1) % segments);
 		}
 
 		var arrayBuffer = gl.createBuffer();
 		gl.bindBuffer(gl.ARRAY_BUFFER, arrayBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(attributes), gl.STATIC_DRAW);
 
-		var indexBuffer = gl.createBuffer();
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indexes), gl.STATIC_DRAW);
-
 		track.attributes = arrayBuffer;
-		track.indexes = indexBuffer;
-		track.elements = 3 * segments * 2 * (track.resolution + 1);
+		track.vertexCount = 2 * (div + 1);
 	})
 }
 
