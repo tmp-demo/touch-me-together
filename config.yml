@@ -1,0 +1,4 @@
+development:
+  port: 3000
+  sockjs:
+    prefix: /ws

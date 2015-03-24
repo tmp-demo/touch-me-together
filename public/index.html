@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+body {
+	margin: 0;
+	background: black;
+}
+#game, canvas {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+}
+		</style>
+	</head>
+	<body>
+		<div id="game"></div>
+		<script src="https://cdn.jsdelivr.net/sockjs/0.3.4/sockjs.min.js"></script>
+		<script src="/gl-matrix-custom.js"></script>
+		<script src="/shaders.js"></script>
+		<script src="/shaders-util.js"></script>
+		<script src="/song.js"></script>
+		<script src="/song-util.js"></script>
+		<script src="/game.js"></script>
+		<script>
+game(true);
+		</script>
+	</body>
+</html>

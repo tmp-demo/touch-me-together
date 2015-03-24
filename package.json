@@ -1,0 +1,29 @@
+{
+  "name": "revision-music",
+  "version": "1.0.0",
+  "description": "Alterpong",
+  "main": "app.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bloutiouf/alterpong"
+  },
+  "keywords": [
+    "ludum dare",
+    "pong",
+    "websocket"
+  ],
+  "author": "Bloutiouf",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Bloutiouf/alterpong/issues"
+  },
+  "homepage": "https://github.com/Bloutiouf/alterpong",
+  "dependencies": {
+    "async": "^0.9.0",
+    "config-path": "^1.0.2",
+    "errorhandler": "^1.3.5",
+    "express": "^4.12.3",
+    "morgan": "^1.5.2",
+    "sockjs": "^0.3.15"
+  }
+}
