@@ -165,7 +165,7 @@ function game() {
 	function sendPing() {
 		pingTime = Date.now();
 		if (isPlaying)
-			send(['ping', audioStartTime.currentTime - audioStartTime - serverHalfPing]);
+			send(['ping', Math.floor((audioCtx.currentTime - audioStartTime) * 1000 - serverHalfPing)]);
 		else
 			send(['ping']);
 	}
@@ -215,7 +215,7 @@ function game() {
 								audioStartTime = audioCtx.currentTime;
 								isPlaying = true;
 								resetNotes();
-								
+
 								var gainNode = audioCtx.createGain();
 								var sourceNode = audioCtx.createBufferSource();
 								sourceNode.buffer = buffer;
@@ -252,8 +252,16 @@ function game() {
 				case 'pong':
 					serverHalfPing = (Date.now() - pingTime) / 2000;
 					pingTimeout = setTimeout(sendPing, 200);
+
+					clientMusicalTime = masterMusicalTime;
+					masterMusicalTime = toMusicalTime((message[1] - serverHalfPing) / 1000);
+					clientRatio = 1;
 					break;
 					
+				case 'stage':
+					currentStage = message[1];
+					break;
+
 				default:
 					console.log('unknown', message);
 					break;
@@ -279,6 +287,9 @@ function game() {
 	var dt;
 	
 	var musicalTime = 0;
+	var masterMusicalTime = 0;
+	var clientMusicalTime = 0;
+	var clientRatio = 0;
 
 	function animate(keyframes) {
 		return evalKeyframe(keyframes, musicalTime);
@@ -307,8 +318,35 @@ function game() {
 				resetNotes();
 			}
 		}
-		else
-			musicalTime += toMusicalTime(dt);
+		else {
+			var dmt = toMusicalTime(dt);
+			var duration = map.stages[currentStage].to - map.stages[currentStage].from;
+
+			masterMusicalTime += dmt;
+			if (masterMusicalTime >= map.stages[currentStage].to) {
+				masterMusicalTime -= duration;
+				resetNotes();
+			}
+
+			clientMusicalTime += dmt;
+			if (clientMusicalTime >= map.stages[currentStage].to) {
+				clientMusicalTime -= duration;
+			}
+
+			var diff = masterMusicalTime - clientMusicalTime;
+			if (diff >= duration / 2)
+				diff -= duration;
+			if (diff < - duration / 2)
+				diff += duration;
+
+			if (Math.abs(diff) > 1)
+				clientMusicalTime = masterMusicalTime;
+
+			if (clientRatio > 0)
+				clientRatio = Math.max(clientRatio - dt * 5, 0);
+			
+			musicalTime = clientMusicalTime * clientRatio + masterMusicalTime * (1 - clientRatio);
+		}
 		
 		// console.log(musicalTime);
 
@@ -405,6 +443,7 @@ function game() {
 					discardNextSource();
 					currentStage = Math.min(currentStage + 1, map.stages.length - 1);
 					pushNextSource();
+					send(['stage', currentStage]);
 					break;
 			}
 		}

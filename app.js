@@ -67,10 +67,23 @@ module.exports = function(options, callback) {
 	var httpServer = http.createServer(app);
 	// sock.installHandlers(server);
 	var server = engine.attach(httpServer);
+	var audioDiff = 0;
+	var currentStage = 0;
 
 	function send(socket, args) {
 		return socket.send(JSON.stringify(args));
 	}
+
+	function broadcast(args, except) {
+		var message = JSON.stringify(args);
+		
+		Object.keys(server.clients).forEach(function(id) {
+			var socket = server.clients[id];
+			if (socket !== except) {
+				socket.send(message);
+			}
+		});
+	};
 
 	server.on('connection', function(socket) {
 		var isMaster = false;
@@ -86,14 +99,24 @@ module.exports = function(options, callback) {
 				case 'auth':
 					if (message[1] === config.masterPassword) {
 						isMaster = true;
+						currentStage = 0;
 						send(socket, ['master']);
+						broadcast(['stage', currentStage]);
 					}
 					break;
 				
 				case 'ping':
-					send(socket, ['pong']);
+					if (isMaster) {
+						audioDiff = message[1] - Date.now();
+					}
+					send(socket, ['pong', audioDiff + Date.now()]);
 					break;
 				
+				case 'stage':
+					currentStage = message[1];
+					broadcast(['stage', currentStage], socket);
+					break;
+
 				default:
 					console.log('unknown', message);
 					break;
