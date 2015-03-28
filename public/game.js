@@ -44,13 +44,16 @@ function game() {
 	var cameraProjectionMatrix = mat4.create();
 	var cameraProjectionViewMatrix = mat4.create();
 	var cameraAspect;
-	var cameraFovy = 1.2;
+	var cameraFov = 1.2;
 	var cameraPosition;
 
 	var touchScale;
 
 	function updateCameraProjectionMatrix() {
-		mat4.perspective(cameraProjectionMatrix, cameraFovy, cameraAspect, 1, 2000);
+		if (cameraAspect > 1)
+			mat4.perspective(cameraProjectionMatrix, cameraFov, cameraAspect, 1, 2000);
+		else
+			mat4.perspectiveX(cameraProjectionMatrix, cameraFov, cameraAspect, 1, 2000);
 	}
 
 	function onWindowResize(event) {
@@ -64,10 +67,7 @@ function game() {
 		gl.viewport(0, 0, width, height);
 
 		var touchRatio = 0.4;
-		if (width > height)
-			touchScale = [touchRatio / cameraAspect, touchRatio];
-		else
-			touchScale = [touchRatio, touchRatio * cameraAspect];
+		touchScale = (width > height ? [touchRatio / cameraAspect, touchRatio] : [touchRatio, touchRatio * cameraAspect]);
 
 		return updateCameraProjectionMatrix();
 	}
@@ -344,7 +344,7 @@ function game() {
 
 			if (clientRatio > 0)
 				clientRatio = Math.max(clientRatio - dt * 5, 0);
-			
+
 			musicalTime = clientMusicalTime * clientRatio + masterMusicalTime * (1 - clientRatio);
 		}
 		

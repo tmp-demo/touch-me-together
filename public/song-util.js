@@ -17,6 +17,7 @@ function generateTrackGeometry(gl) {
 	var halfThickness = 0.05;
 
 	song.tracks.forEach(function(track) {
+		console.log("Track", track.from, track.to);
 		var attributes = [];
 		var indexes = [];
 
@@ -29,6 +30,8 @@ function generateTrackGeometry(gl) {
 			var at = track.from + (track.to - track.from) * t;
 			var c = [bezier(track, 0, t), bezier(track, 1, t), bezier(track, 2, t)];
 			var a = [bezier1(track, 0, t), bezier1(track, 1, t), bezier1(track, 2, t)];
+			console.log("center", c);
+			console.log("derive", a);
 			vec3.normalize(a, a);
 			vec3.add(a, a, c);
 

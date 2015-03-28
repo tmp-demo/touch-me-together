@@ -87,6 +87,9 @@ module.exports = function(options, callback) {
 
 	server.on('connection', function(socket) {
 		var isMaster = false;
+
+		send(socket, ['stage', currentStage]);
+		
 		socket.on('data', function(message) {
 			try {
 				message = JSON.parse(message);

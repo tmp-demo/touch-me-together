@@ -3472,6 +3472,28 @@ mat4.perspective = function (out, fovy, aspect, near, far) {
     return out;
 };
 
+mat4.perspectiveX = function (out, fovx, aspect, near, far) {
+    var f = 1.0 / M.tan(fovx / 2),
+        nf = 1 / (near - far);
+    out[0] = f;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 0;
+    out[5] = f * aspect;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 0;
+    out[9] = 0;
+    out[10] = (far + near) * nf;
+    out[11] = -1;
+    out[12] = 0;
+    out[13] = 0;
+    out[14] = (2 * far * near) * nf;
+    out[15] = 0;
+    return out;
+};
+
 /**
  * Generates a orthogonal projection matrix with the given bounds
  *
