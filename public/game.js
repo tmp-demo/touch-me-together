@@ -17,7 +17,7 @@ function quadGeometry(gl) {
 	};
 }
 
-function game(isMaster) {
+function game() {
 	try {
 		var container = document.getElementById('game');
 		var canvas = document.createElement('canvas');
@@ -36,8 +36,8 @@ function game(isMaster) {
 	
 	var programs = createPrograms(gl, {
 		bg: ['fullscreen', 'bg'],
-		line: ['line', 'line'],
 		touch: ['billboard', 'touch'],
+		track: ['track', 'track'],
 	});
 	
 	var cameraViewMatrix = mat4.create();
@@ -95,51 +95,180 @@ function game(isMaster) {
 		vec2.scaleAndAdd(mouse, cameraPosition, vec, distance);
 	};
 	
-	var pingTime, serverHalfPing;
+	song.notes.forEach(function(note) {
+		note.alpha = new PFloat(1, PFloat.LINEAR, 4);
+	});
+
+	function resetNotes() {
+		song.notes.forEach(function(note) {
+			note.alpha.target = 1;
+		});
+	}
+
+	var audioCtx;
+	var audioBuffer;
+	var audioStartTime;
+
+	var pingTime;
+	var serverHalfPing = 0;
 	var pingTimeout;
-	
+
+	var socket;
+	var isMaster = false;
+	var isPlaying = false;
+
+	var currentChunk, nextChunk;
+	var fadeConstant = 0.2;
+	var currentStage = 0;
+
+	function toMusicalTime(t) {
+		return t / 60 * map.bpm;
+	}
+
+	function fromMusicalTime(t) {
+		return t * 60 / map.bpm;
+	}
+
+	function pushNextSource() {
+		var gainNode = audioCtx.createGain();
+		var sourceNode = audioCtx.createBufferSource();
+		sourceNode.buffer = audioBuffer;
+		sourceNode.connect(gainNode);
+		gainNode.connect(audioCtx.destination);
+
+		var offset = fromMusicalTime(map.stages[currentStage].from)
+		var endTime = fromMusicalTime(map.stages[currentStage].to - map.stages[currentStage].from) + currentChunk.endTime
+		gainNode.gain.setTargetAtTime(1.0, currentChunk.endTime, fadeConstant);
+		sourceNode.start(currentChunk.endTime, offset);
+		gainNode.gain.setTargetAtTime(0.0, endTime, fadeConstant);
+		sourceNode.stop(endTime + 1);
+
+		nextChunk = {
+			gainNode: gainNode,
+			sourceNode: sourceNode,
+			endTime: endTime
+		};
+	}
+
+	function discardNextSource() {
+		nextChunk.sourceNode.disconnect();
+		nextChunk.sourceNode.stop(audioCtx.currentTime);
+
+		nextChunk.gainNode.disconnect();
+		nextChunk.gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
+	}
+
+	function send(args) {
+		return socket.send(JSON.stringify(args));
+	}
+
 	function sendPing() {
 		pingTime = Date.now();
-		send(['ping']);
+		if (isPlaying)
+			send(['ping', audioStartTime.currentTime - audioStartTime - serverHalfPing]);
+		else
+			send(['ping']);
 	}
 	
-	var sock = new SockJS('/ws');
-	
-	function send(args) {
-		return sock.send(JSON.stringify(args));
+	function connect() {
+		socket = new eio.Socket();
+
+		socket.on('open', function() {
+			if (location.hash)
+				send(['auth', location.hash.substr(1)]);
+			sendPing();
+		});
+		
+		socket.on('message', function(message) {
+			try {
+				message = JSON.parse(message);
+			} catch (err) {
+				console.warn(message);
+				return console.error(err);
+			}
+			
+			if (message[0] !== 'pong' && message[0] !== 'y')
+				console.log(message);
+			
+			switch (message[0]) {
+				case 'master':
+					if (!isMaster) {
+						isMaster = true;
+
+						audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+						var request = new XMLHttpRequest();
+						request.open("GET", "/ponponpon.ogg", true);
+						request.responseType = "arraybuffer";
+
+						request.onload = function() {
+							if (request.status >= 400) {
+								return load(extensionIndex + 1);
+							}
+							
+							audioCtx.decodeAudioData(request.response, function(buffer) {
+								if (!buffer) {
+									return console.error('Error while decoding');
+								}
+								
+								audioBuffer = buffer;
+								audioStartTime = audioCtx.currentTime;
+								isPlaying = true;
+								resetNotes();
+								
+								var gainNode = audioCtx.createGain();
+								var sourceNode = audioCtx.createBufferSource();
+								sourceNode.buffer = buffer;
+								sourceNode.connect(gainNode);
+								gainNode.connect(audioCtx.destination);
+
+								var offset = fromMusicalTime(map.stages[0].from)
+								var endTime = fromMusicalTime(map.stages[0].to - map.stages[0].from) + audioStartTime
+								gainNode.gain.setTargetAtTime(1.0, audioCtx.currentTime, fadeConstant);
+								sourceNode.start(audioCtx.currentTime, offset);
+								gainNode.gain.setTargetAtTime(0.0, endTime, fadeConstant);
+								sourceNode.stop(endTime + 1);
+
+								currentChunk = {
+									gainNode: gainNode,
+									sourceNode: sourceNode,
+									endTime: endTime
+								};
+
+								pushNextSource();
+							}, function() {
+								console.error('Error while decoding');
+							});
+						}
+
+						request.onerror = function(err) {
+							console.error(err);
+						}
+
+						request.send();
+					}
+					break;
+					
+				case 'pong':
+					serverHalfPing = (Date.now() - pingTime) / 2000;
+					pingTimeout = setTimeout(sendPing, 200);
+					break;
+					
+				default:
+					console.log('unknown', message);
+					break;
+			}
+		});
+		
+		socket.on('close', function() {
+			clearTimeout(pingTimeout);
+			pingTimeout = null;
+
+			connect();
+		});
 	}
-	
-	sock.onopen = function() {
-		sendPing();
-	};
-	
-	sock.onmessage = function(e) {
-		try {
-			var message = JSON.parse(e.data);
-		} catch (err) {
-			console.warn(e.data);
-			return console.error(err);
-		}
-		
-		if (message[0] !== 'pong' && message[0] !== 'y')
-			console.log(message);
-		
-		switch (message[0]) {
-			case 'pong':
-				serverHalfPing = (Date.now() - pingTime) / 2000;
-				pingTimeout = setTimeout(sendPing, 200);
-				break;
-				
-			default:
-				console.log('unknown', message);
-				break;
-		}
-	};
-	
-	sock.onclose = function() {
-		clearTimeout(pingTimeout);
-		pingTimeout = null;
-	};
+
+	connect();
 	
 	gl.enable(gl.BLEND);
 	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -167,10 +296,22 @@ function game(isMaster) {
 		dt = time - lastTime;
 		lastTime = time;
 
-		musicalTime += dt;
-		while (musicalTime >= 20)
-			musicalTime -= 20;
+		if (isPlaying) {
+			musicalTime = toMusicalTime(audioCtx.currentTime - audioStartTime);
+			if (musicalTime >= map.stages[currentStage].to) {
+				var duration = map.stages[currentStage].to - map.stages[currentStage].from;
+				musicalTime -= duration;
+				audioStartTime += fromMusicalTime(duration);
+				currentChunk = nextChunk;
+				pushNextSource();
+				resetNotes();
+			}
+		}
+		else
+			musicalTime += toMusicalTime(dt);
 		
+		// console.log(musicalTime);
+
 		cameraPosition = [
 			animate(song.animations.cameraX),
 			animate(song.animations.cameraY),
@@ -202,22 +343,22 @@ function game(isMaster) {
 		gl.enable(gl.DEPTH_TEST);
 		gl.depthMask(true);
 
-		gl.useProgram(programs.line.id);
-		gl.uniformMatrix4fv(programs.line.projectionViewMatrix, false, cameraProjectionViewMatrix);
-		gl.uniform1f(programs.line.cameraAspect, cameraAspect);
-		gl.uniform1f(programs.line.currentTime, musicalTime);
+		gl.useProgram(programs.track.id);
+		gl.uniformMatrix4fv(programs.track.projectionViewMatrix, false, cameraProjectionViewMatrix);
+		gl.uniform1f(programs.track.cameraAspect, cameraAspect);
+		gl.uniform1f(programs.track.currentTime, musicalTime);
 		
 		var size = Float32Array.BYTES_PER_ELEMENT * 8;
 		song.tracks.forEach(function(track) {
 			gl.bindBuffer(gl.ARRAY_BUFFER, track.attributes);
-			gl.enableVertexAttribArray(programs.line.position);
-			gl.vertexAttribPointer(programs.line.position, 3, gl.FLOAT, false, size, 0);
-			gl.enableVertexAttribArray(programs.line.direction);
-			gl.vertexAttribPointer(programs.line.direction, 3, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 3);
-			gl.enableVertexAttribArray(programs.line.halfThickness);
-			gl.vertexAttribPointer(programs.line.halfThickness, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 6);
-			gl.enableVertexAttribArray(programs.line.time);
-			gl.vertexAttribPointer(programs.line.time, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 7);
+			gl.enableVertexAttribArray(programs.track.position);
+			gl.vertexAttribPointer(programs.track.position, 3, gl.FLOAT, false, size, 0);
+			gl.enableVertexAttribArray(programs.track.direction);
+			gl.vertexAttribPointer(programs.track.direction, 3, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 3);
+			gl.enableVertexAttribArray(programs.track.halfThickness);
+			gl.vertexAttribPointer(programs.track.halfThickness, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 6);
+			gl.enableVertexAttribArray(programs.track.time);
+			gl.vertexAttribPointer(programs.track.time, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 7);
 			gl.drawArrays(gl.TRIANGLE_STRIP, 0, track.vertexCount);
 			// gl.drawArrays(gl.LINE_STRIP, 0, track.vertexCount);
 		})
@@ -234,17 +375,43 @@ function game(isMaster) {
 
 		gl.uniformMatrix4fv(programs.touch.projectionViewMatrix, false, cameraProjectionViewMatrix);
 		gl.uniform2fv(programs.touch.scale, touchScale);
+		gl.uniform3fv(programs.touch.color, [1, 1, 0]);
 
 		song.notes.forEach(function(note) {
+			if (musicalTime >= note.time)
+				note.alpha.target = 0;
+
+			note.alpha.update(dt);
+
 			gl.uniform3fv(programs.touch.center, note.position);
+			gl.uniform1f(programs.touch.alpha, note.alpha.current);
 
 			gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
 
-		})
+		});
 	}
 	
 	render();
+
+	window.addEventListener('keydown', function(event) {
+		if (isPlaying) {
+			console.log(event.which);
+			switch (event.which) {
+				case 37: // left
+					currentStage = Math.max(currentStage - 1, 0);
+					break;
+
+				case 39: // right
+					discardNextSource();
+					currentStage = Math.min(currentStage + 1, map.stages.length - 1);
+					pushNextSource();
+					break;
+			}
+		}
+	}, true);
 }
+
+game();
 
 // var color = document.getElementById("color");
 // color.addEventListener("touchstart", function(event) {

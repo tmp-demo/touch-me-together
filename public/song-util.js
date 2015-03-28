@@ -59,7 +59,7 @@ function evalKeyframe(keyframes, time) {
 	var t = (time - keyframes[a].co[0]) / (keyframes[b].co[0] - keyframes[a].co[0]);
 	
 	if (keyframes[a].inter === "LINEAR")
-		return keyframes[a].co[1] * (1 - t) + keyframes[b].co[1] * (1 - t);
+		return keyframes[a].co[1] * (1 - t) + keyframes[b].co[1] * t;
 	
 	var ta = 0, tb = 1;
 	while (tb - ta > 0.0001) {

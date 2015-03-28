@@ -1,61 +1,15 @@
 var async = require("async");
 var config = require('config-path')(__dirname + "/config.yml");
+var engine = require('engine.io');
 var errorhandler = require("errorhandler");
 var express = require("express");
 var fs = require("fs");
 var http = require("http");
 var morgan = require("morgan");
 var path = require("path");
-var sockjs = require('sockjs');
 var util = require("util");
 
 module.exports = function(options, callback) {
-	var sock = sockjs.createServer(options.sockjs);
-	
-	var conns = [];
-
-	function send(conn, args) {
-		return conn.write(JSON.stringify(args));
-	}
-
-	function broadcast(args, except) {
-		var message = JSON.stringify(args);
-		
-		conns.forEach(function(conn) {
-			if (conn && i !== except) {
-				conn.write(message);
-			}
-		});
-	};
-
-	sock.on('connection', function(conn) {
-		conns.push(conn);
-
-		conn.on('data', function(data) {
-			try {
-				var message = JSON.parse(data);
-			} catch (err) {
-				console.warn(data);
-				return console.error(err);
-			}
-			
-			switch (message[0]) {
-				case 'ping':
-					send(conn, ['pong']);
-					break;
-				
-				default:
-					console.log('unknown', message);
-					break;
-			}
-		});
-		
-		conn.on('close', function() {
-			var index = conns.indexOf(conn);
-			conns.splice(index, 1);
-		});
-	});
-
 	var app = express();
 
 	var publicDir = path.join(__dirname, "public");
@@ -110,9 +64,89 @@ module.exports = function(options, callback) {
 	
 	app.use(errorhandler());
 	
-	var server = http.createServer(app);
-	sock.installHandlers(server);
-	return callback(null, server, app);
+	var httpServer = http.createServer(app);
+	// sock.installHandlers(server);
+	var server = engine.attach(httpServer);
+
+	function send(socket, args) {
+		return socket.send(JSON.stringify(args));
+	}
+
+	server.on('connection', function(socket) {
+		var isMaster = false;
+		socket.on('data', function(message) {
+			try {
+				message = JSON.parse(message);
+			} catch (err) {
+				console.warn(message);
+				return console.error(err);
+			}
+			
+			switch (message[0]) {
+				case 'auth':
+					if (message[1] === config.masterPassword) {
+						isMaster = true;
+						send(socket, ['master']);
+					}
+					break;
+				
+				case 'ping':
+					send(socket, ['pong']);
+					break;
+				
+				default:
+					console.log('unknown', message);
+					break;
+			}
+		});
+	});
+/*
+	var conns = [];
+
+	function send(conn, args) {
+		return conn.write(JSON.stringify(args));
+	}
+
+	function broadcast(args, except) {
+		var message = JSON.stringify(args);
+		
+		conns.forEach(function(conn) {
+			if (conn && i !== except) {
+				conn.write(message);
+			}
+		});
+	};
+
+	sock.on('connection', function(conn) {
+		conns.push(conn);
+
+		conn.on('data', function(data) {
+			try {
+				var message = JSON.parse(data);
+			} catch (err) {
+				console.warn(data);
+				return console.error(err);
+			}
+			
+			switch (message[0]) {
+				case 'ping':
+					send(conn, ['pong']);
+				conn.write("e", "f")
+					break;
+				
+				default:
+					console.log('unknown', message);
+					break;
+			}
+		});
+		
+		conn.on('close', function() {
+			var index = conns.indexOf(conn);
+			conns.splice(index, 1);
+		});
+	});
+*/
+	return callback(null, httpServer, app);
 };
 
 if (require.main === module) {
