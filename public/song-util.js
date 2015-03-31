@@ -6,6 +6,12 @@ function bezier(track, axis, t) {
 			track.p3[axis] * t * t * t;
 }
 
+function bezierLine(track, axis, t) {
+	var T = 1 - t;
+	return	track.p0[axis] * T +
+			track.p3[axis] * t;
+}
+
 function bezier1(track, axis, t) {
 	var T = 1 - t;
 	return	(track.p1[axis] - track.p0[axis]) * T * T * 3 +
@@ -14,8 +20,6 @@ function bezier1(track, axis, t) {
 }
 
 function generateTrackGeometry(gl) {
-	var halfThickness = 0.05;
-
 	song.tracks.forEach(function(track) {
 		console.log("Track", track.from, track.to);
 		var attributes = [];
@@ -36,7 +40,7 @@ function generateTrackGeometry(gl) {
 			vec3.add(a, a, c);
 
 			for (var s = 0; s < 2; ++s) {
-				attributes.push(c[0], c[1], c[2], a[0], a[1], a[2], s === 0 ? halfThickness : -halfThickness, at);
+				attributes.push(c[0], c[1], c[2], a[0], a[1], a[2], s === 0 ? 1 : -1, at);
 			}
 		}
 

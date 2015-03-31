@@ -36,6 +36,7 @@ function game() {
 	
 	var programs = createPrograms(gl, {
 		bg: ['fullscreen', 'bg'],
+		cursor: ['billboard', 'cursor'],
 		touch: ['billboard', 'touch'],
 		track: ['track', 'track'],
 	});
@@ -47,13 +48,13 @@ function game() {
 	var cameraFov = 1.2;
 	var cameraPosition;
 
-	var touchScale;
+	var squareScale;
 
 	function updateCameraProjectionMatrix() {
 		if (cameraAspect > 1)
-			mat4.perspective(cameraProjectionMatrix, cameraFov, cameraAspect, 1, 2000);
+			mat4.perspective(cameraProjectionMatrix, cameraFov, cameraAspect, 0.1, 100);
 		else
-			mat4.perspectiveX(cameraProjectionMatrix, cameraFov, cameraAspect, 1, 2000);
+			mat4.perspectiveX(cameraProjectionMatrix, cameraFov, cameraAspect, 0.1, 100);
 	}
 
 	function onWindowResize(event) {
@@ -66,8 +67,7 @@ function game() {
 		
 		gl.viewport(0, 0, width, height);
 
-		var touchRatio = 0.4;
-		touchScale = (width > height ? [touchRatio / cameraAspect, touchRatio] : [touchRatio, touchRatio * cameraAspect]);
+		squareScale = (width > height ? [1 / cameraAspect, 1] : [1, cameraAspect]);
 
 		return updateCameraProjectionMatrix();
 	}
@@ -96,12 +96,12 @@ function game() {
 	};
 	
 	song.notes.forEach(function(note) {
-		note.alpha = new PFloat(1, PFloat.LINEAR, 4);
+		note.opacity = new PFloat(1, PFloat.LINEAR, 4);
 	});
 
 	function resetNotes() {
 		song.notes.forEach(function(note) {
-			note.alpha.target = 1;
+			note.opacity.target = 1;
 		});
 	}
 
@@ -348,7 +348,10 @@ function game() {
 			musicalTime = clientMusicalTime * clientRatio + masterMusicalTime * (1 - clientRatio);
 		}
 		
-		// console.log(musicalTime);
+		var fTime = musicalTime % 1;
+		var beat = 1 - fTime * (1 - fTime) * 4;
+
+		// console.log(beat);
 
 		cameraPosition = [
 			animate(song.animations.cameraX),
@@ -385,6 +388,7 @@ function game() {
 		gl.uniformMatrix4fv(programs.track.projectionViewMatrix, false, cameraProjectionViewMatrix);
 		gl.uniform1f(programs.track.cameraAspect, cameraAspect);
 		gl.uniform1f(programs.track.currentTime, musicalTime);
+		gl.uniform1f(programs.track.beat, beat);
 		
 		var size = Float32Array.BYTES_PER_ELEMENT * 8;
 		song.tracks.forEach(function(track) {
@@ -393,14 +397,13 @@ function game() {
 			gl.vertexAttribPointer(programs.track.position, 3, gl.FLOAT, false, size, 0);
 			gl.enableVertexAttribArray(programs.track.direction);
 			gl.vertexAttribPointer(programs.track.direction, 3, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 3);
-			gl.enableVertexAttribArray(programs.track.halfThickness);
-			gl.vertexAttribPointer(programs.track.halfThickness, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 6);
+			gl.enableVertexAttribArray(programs.track.side);
+			gl.vertexAttribPointer(programs.track.side, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 6);
 			gl.enableVertexAttribArray(programs.track.time);
 			gl.vertexAttribPointer(programs.track.time, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 7);
 			gl.drawArrays(gl.TRIANGLE_STRIP, 0, track.vertexCount);
 			// gl.drawArrays(gl.LINE_STRIP, 0, track.vertexCount);
 		})
-
 
 		gl.disable(gl.DEPTH_TEST);
 		gl.depthMask(false);
@@ -412,31 +415,54 @@ function game() {
 		gl.vertexAttribPointer(programs.touch.position, 2, gl.FLOAT, false, 0, 0);
 
 		gl.uniformMatrix4fv(programs.touch.projectionViewMatrix, false, cameraProjectionViewMatrix);
-		gl.uniform2fv(programs.touch.scale, touchScale);
-		gl.uniform3fv(programs.touch.color, [1, 1, 0]);
+		gl.uniform2fv(programs.touch.squareScale, squareScale);
+		gl.uniform1f(programs.touch.scale, 0.2 * (3 + beat));
+		gl.uniform3fv(programs.touch.color, [0, 0.47, 1]);
+		gl.uniform3fv(programs.touch.aura, [0.22, 0.82, 1]);
 
 		song.notes.forEach(function(note) {
 			if (musicalTime >= note.time)
-				note.alpha.target = 0;
+				note.opacity.target = 0;
 
-			note.alpha.update(dt);
+			note.opacity.update(dt);
 
 			gl.uniform3fv(programs.touch.center, note.position);
-			gl.uniform1f(programs.touch.alpha, note.alpha.current);
+			gl.uniform1f(programs.touch.opacity, note.opacity.current);
 
 			gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
 
 		});
+
+		gl.useProgram(programs.cursor.id);
+		gl.enableVertexAttribArray(programs.cursor.position);
+		gl.vertexAttribPointer(programs.cursor.position, 2, gl.FLOAT, false, 0, 0);
+
+		gl.uniformMatrix4fv(programs.cursor.projectionViewMatrix, false, cameraProjectionViewMatrix);
+		gl.uniform2fv(programs.cursor.squareScale, squareScale);
+		gl.uniform1f(programs.cursor.scale, 0.1 * (3 + beat));
+		gl.uniform3fv(programs.cursor.color, [1, 0.47, 0.03]);
+		gl.uniform1f(programs.cursor.opacity, 1);
+
+		song.tracks.forEach(function(track) {
+			if (track.from <= musicalTime && musicalTime < track.to) {
+				var t = (musicalTime - track.from) / (track.to - track.from);
+				var c = [bezierLine(track, 0, t), bezierLine(track, 1, t), bezierLine(track, 2, t)];
+				gl.uniform3fv(programs.cursor.center, c);
+				gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+			}
+		})
+
 	}
-	
+
 	render();
 
 	window.addEventListener('keydown', function(event) {
 		if (isPlaying) {
-			console.log(event.which);
+			// console.log(event.which);
 			switch (event.which) {
 				case 37: // left
 					currentStage = Math.max(currentStage - 1, 0);
+					send(['stage', currentStage]);
 					break;
 
 				case 39: // right

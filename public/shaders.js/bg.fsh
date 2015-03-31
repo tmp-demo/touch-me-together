@@ -12,8 +12,8 @@ vec3 hsv2rgb(vec3 c)
 }
 
 float map(vec3 point) {
-	vec3 m = mod(point, vec3(10.0)) - 5.0;
-	return length(m) - 1.0;
+	vec3 m = mod(point, vec3(1.0)) - 0.5;
+	return length(m) - 0.1;
 }
 
 void main() {
@@ -22,10 +22,10 @@ void main() {
 	
 	float distance;
 	vec3 point = cameraPosition;
-	for (int i = 0; i < 64; ++i) {
+	for (int i = 0; i < 16; ++i) {
 		distance = map(point);
 		point += distance * dir;
 	}
 	
-	gl_FragColor = vec4(length(point) / 100.0);
+	gl_FragColor = vec4(1.0 - length(point - cameraPosition) / 10.0);
 }
