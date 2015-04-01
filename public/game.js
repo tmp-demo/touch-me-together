@@ -101,21 +101,28 @@ function game() {
 	var touches = [];
 	var slides = [];
 	song.notes.forEach(function(note) {
+		note.originPosition = note.position;
 		note.opacity = new PFloat(1, PFloat.LINEAR, 4);
 		note.scale = new PFloat(0.2, PFloat.LINEAR, 4);
-		if (note.segments)
+		if (note.segments) {
+			note.trailOpacity = new PFloat(0.8, PFloat.LINEAR, 4);
 			slides.push(note);
-		else
+		} else
 			touches.push(note);
 	});
 
 	function resetNotes() {
 		song.notes.forEach(function(note) {
-			note.opacity.target = 1;
-			note.scale.target = 0.2;
+			note.position = note.originPosition;
+			note.opacity.current = note.opacity.target = 1;
+			note.scale.current = note.scale.target = 0.2;
 			note.inProgress = false;
 			note.identifier = null;
 			note.scored = false;
+
+			if (note.segments) {
+				note.trailOpacity.current = note.trailOpacity.target = 0.8;
+			}
 		});
 	}
 
@@ -384,6 +391,34 @@ function game() {
 		mat4.multiply(cameraProjectionViewMatrix, cameraProjectionMatrix, cameraViewMatrix);
 		mat4.invert(inverseProjectionViewMatrix, cameraProjectionViewMatrix);
 		
+		slides.forEach(function(note) {
+			if (note.inProgress || musicalTime < note.time)
+				note.segments.some(function(segment) {
+					if (segment.from <= musicalTime && musicalTime < segment.to) {
+						var t = (musicalTime - segment.from) / (segment.to - segment.from);
+						note.position = [bezierLine(segment, 0, t), bezierLine(segment, 1, t), bezierLine(segment, 2, t)];
+						return true;
+					}
+				});
+
+			if (note.inProgress) {
+				var fingerPosition = fingerPositions[note.identifier];
+				var clipPosition = vec4.create();
+				vec4.transformMat4(clipPosition, [note.position[0], note.position[1], note.position[2], 1], cameraProjectionViewMatrix);
+				vec3.scale(clipPosition, clipPosition, 1 / clipPosition[3]);
+				if (vec2.squaredDistance(clipPosition, fingerPosition) > 0.2)
+				{
+					note.inProgress = false;
+					note.opacity.target = 0;
+					note.trailOpacity.target = 0.2;
+				}
+			}
+
+			note.opacity.update(dt);
+			note.scale.update(dt);
+			note.trailOpacity.update(dt);
+		});
+
 		gl.bindBuffer(gl.ARRAY_BUFFER, geometries.quad.array);
 		
 		gl.useProgram(programs.bg.id);
@@ -412,6 +447,7 @@ function game() {
 		gl.uniform1f(programs.slide.thickness, 0.2);
 		
 		slides.forEach(function(slide) {
+			gl.uniform1f(programs.slide.trailOpacity, slide.trailOpacity.current);
 			slide.segments.forEach(function(segment) {
 				gl.bindBuffer(gl.ARRAY_BUFFER, segment.attributes);
 				gl.enableVertexAttribArray(programs.slide.position);
@@ -459,32 +495,14 @@ function game() {
 		gl.uniform3fv(programs.touch.aura, [0.22, 0.82, 1]);
 
 		slides.forEach(function(note) {
-			note.opacity.update(dt);
-			note.scale.update(dt);
-
-			if (!note.inProgress || musicalTime < note.time)
-				gl.uniform3fv(programs.touch.center, note.segments[0].p0);
-			else if (!note.segments.some(function(segment) {
-				if (segment.from <= musicalTime && musicalTime < segment.to) {
-					var t = (musicalTime - segment.from) / (segment.to - segment.from);
-					gl.uniform3fv(programs.touch.center, [bezierLine(segment, 0, t), bezierLine(segment, 1, t), bezierLine(segment, 2, t)]);
-					return true;
-				}
-			}))
-				gl.uniform3fv(programs.touch.center, note.segments[note.segments.length-1].p3);
+			gl.uniform3fv(programs.touch.center, note.position);
 			gl.uniform1f(programs.touch.opacity, note.opacity.current);
 			gl.uniform1f(programs.touch.scale, note.scale.current * (3 + beat));
 
 			gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
-
 		});
 
 		touches.forEach(function(note) {
-			if (musicalTime >= note.time) {
-				note.opacity.target = 0;
-				note.scale.target = 1;
-			}
-
 			note.opacity.update(dt);
 			note.scale.update(dt);
 
@@ -493,7 +511,6 @@ function game() {
 			gl.uniform1f(programs.touch.scale, note.scale.current * (3 + beat));
 
 			gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
-
 		});
 
 		gl.useProgram(programs.cursor.id);
@@ -517,8 +534,6 @@ function game() {
 
 	}
 
-	render();
-
 	var score = 0;
 
 	function addScore(inc) {
@@ -528,6 +543,8 @@ function game() {
 		if (inc > 0.75) {
 			className = "perfect";
 			feedback = "Perfect!";
+			if (navigator.vibrate)
+				navigator.vibrate(200);
 		} else if (inc > 0.5) {
 			className = "great";
 			feedback = "Great!";
@@ -547,7 +564,20 @@ function game() {
 		}, 3000);
 	}
 
-	var slidesInProgress = {};
+	var noteByIdentifiers = {};
+	var fingerPositions = {};
+
+	function updateFingerPosition(desc, identifier) {
+		var width = window.innerWidth;
+		var height = window.innerHeight;
+		var fingerPosition = [desc.pageX / width * 2 - 1, desc.pageY / height * 2 - 1];
+		if (width > height)
+			fingerPosition[0] *= cameraAspect;
+		else
+			fingerPosition[1] /= cameraAspect;
+		fingerPositions[identifier] = fingerPosition;
+		return fingerPosition;
+	}
 
 	function touchStart(desc, identifier, latency) {
 		var time = musicalTime - latency;
@@ -557,14 +587,7 @@ function game() {
 		});
 
 		var clipPosition = vec4.create();
-		var screenPosition = vec2.create();
-		var width = window.innerWidth;
-		var height = window.innerHeight;
-		var touchPosition = [desc.pageX / width * 2 - 1, desc.pageY / height * 2 - 1];
-		if (width > height)
-			touchPosition[0] *= cameraAspect;
-		else
-			touchPosition[1] /= cameraAspect;
+		fingerPosition = updateFingerPosition(desc, identifier);
 
 		for (var i = 0, n = song.notes.length; i < n; ++i) {
 			var note = song.notes[i];
@@ -577,19 +600,21 @@ function game() {
 
 			vec4.transformMat4(clipPosition, [note.position[0], note.position[1], note.position[2], 1], cameraProjectionViewMatrix);
 			vec3.scale(clipPosition, clipPosition, 1 / clipPosition[3]);
-			//if (vec2.squaredDistance(clipPosition, touchPosition) < 0.2)
+			//if (vec2.squaredDistance(clipPosition, fingerPosition) < 0.2)
 			{
 				note.scored = true;
 				console.log(fromMusicalTime(note.time - time));
-				if (window.navigator && dt < 0.1)
-					window.navigator.vibrate(200);
 
 				if (note.segments) {
 					note.inProgress = true;
 					note.identifier = identifier;
 					note.scale.target = 0.5;
+					note.firstScore = 0.5 - dt;
+					noteByIdentifiers[identifier] = note;
 				} else {
 					addScore(1 - dt * 2);
+					note.opacity.target = 0;
+					note.scale.target = 1;
 				}
 
 				break;
@@ -597,12 +622,32 @@ function game() {
 		}
 	}
 
-	function touchMove(desc, identifier) {
-
+	function touchMove(desc, identifier, latency) {
+		updateFingerPosition(desc, identifier);
 	}
 
-	function touchEnd(desc, identifier) {
+	function touchEnd(desc, identifier, latency) {
+		var time = musicalTime - latency;
 
+		var note = noteByIdentifiers[identifier];
+		if (note) {
+			delete noteByIdentifiers[identifier];
+
+			if (!note.inProgress)
+				return ;
+
+			note.inProgress = false;
+
+			var dt = Math.abs(note.segments[note.segments.length - 1].to - time);
+			if (dt > 0.5) {
+				note.trailOpacity.target = 0.2;
+			} else {
+				addScore(note.firstScore + 0.5 - dt);
+				note.scale.target = 1;
+			}
+
+			note.opacity.target = 0;
+		}
 	}
 
 	window.addEventListener('keydown', function(event) {
@@ -662,6 +707,8 @@ function game() {
 		event.preventDefault();
 		return touchMove(event, "mouse", 0);
 	}, false);
+
+	render();
 }
 
 game();
