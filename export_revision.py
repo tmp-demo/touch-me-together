@@ -75,6 +75,25 @@ class RevisionExporter(bpy.types.Operator, ExportHelper):
                         if fcu.data_path == "rotation_euler" and fcu.array_index == 2:
                             animations["camTilt"] = animation(fcu)
                             
+                if name_parts[0] == "Slide":
+                    spline = object.data.splines[0]
+                    points = spline.bezier_points
+                    parts = len(points) - 1
+                    segments = []
+                    for i in range(0, parts):
+                        segments.append({
+                            "from": float(name_parts[i+1]),
+                            "to": float(name_parts[i+2]),
+                            "p0": list(points[i].co + object.location),
+                            "p1": list(points[i].handle_right + object.location),
+                            "p2": list(points[i+1].handle_left + object.location),
+                            "p3": list(points[i+1].co + object.location),
+                        })
+                    notes.append({
+                        "time": float(name_parts[1]),
+                        "segments": segments
+                    })
+                    
                 if name_parts[0] == "Touch":
                     notes.append({
                         "time": float(name_parts[1]),
@@ -82,21 +101,19 @@ class RevisionExporter(bpy.types.Operator, ExportHelper):
                     })
                     
                 if name_parts[0] == "Track":
-                    spline = object.data.splines[0]
-                    points = spline.bezier_points
-                    parts = len(points) - 1
-                    time_from = float(name_parts[1])
-                    time_diff = float(name_parts[2]) - float(name_parts[1])
-                    for i in range(0, parts):
-                        tracks.append({
-                            "resolution": spline.resolution_u,
-                            "from": time_from + time_diff * i / parts,
-                            "to": time_from + time_diff * (i + 1) / parts,
-                            "p0": list(points[i].co + object.location),
-                            "p1": list(points[i].handle_right + object.location),
-                            "p2": list(points[i+1].handle_left + object.location),
-                            "p3": list(points[i+1].co + object.location),
-                        })
+                    for spline in object.data.splines:
+                        points = spline.bezier_points
+                        parts = len(points) - 1
+                        for i in range(0, parts):
+                            tracks.append({
+                                "resolution": spline.resolution_u,
+                                "from": float(name_parts[i+1]),
+                                "to": float(name_parts[i+2]),
+                                "p0": list(points[i].co + object.location),
+                                "p1": list(points[i].handle_right + object.location),
+                                "p2": list(points[i+1].handle_left + object.location),
+                                "p3": list(points[i+1].co + object.location),
+                            })
 
         data = {
             "animations": animations,

@@ -94,9 +94,15 @@ function game() {
 		vec2.scaleAndAdd(mouse, cameraPosition, vec, distance);
 	};
 	
+	var touches = [];
+	var slides = [];
 	song.notes.forEach(function(note) {
 		note.opacity = new PFloat(1, PFloat.LINEAR, 4);
 		note.scale = new PFloat(0.2, PFloat.LINEAR, 4);
+		if (note.segments)
+			slides.push(note);
+		else
+			touches.push(note);
 	});
 
 	function resetNotes() {
@@ -422,7 +428,24 @@ function game() {
 		gl.uniform3fv(programs.touch.color, [0, 0.47, 1]);
 		gl.uniform3fv(programs.touch.aura, [0.22, 0.82, 1]);
 
-		song.notes.forEach(function(note) {
+		slides.forEach(function(note) {
+			if (musicalTime >= note.time) {
+				note.opacity.target = 0;
+				note.scale.target = 1;
+			}
+
+			note.opacity.update(dt);
+			note.scale.update(dt);
+
+			gl.uniform3fv(programs.touch.center, note.segments[0].p0);
+			gl.uniform1f(programs.touch.opacity, note.opacity.current);
+			gl.uniform1f(programs.touch.scale, note.scale.current * (3 + beat));
+
+			gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+
+		});
+
+		touches.forEach(function(note) {
 			if (musicalTime >= note.time) {
 				note.opacity.target = 0;
 				note.scale.target = 1;
