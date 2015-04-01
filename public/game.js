@@ -31,13 +31,14 @@ function game() {
 		quad: quadGeometry(gl),
 	};
 	
-	generateTrackGeometry(gl);
+	generateGeometry(gl);
 	
 	var programs = createPrograms(gl, {
 		bg: ['fullscreen', 'bg'],
 		cursor: ['billboard', 'cursor'],
+		slide: ['line', 'slide'],
 		touch: ['billboard', 'touch'],
-		track: ['track', 'track'],
+		track: ['line', 'track'],
 	});
 	
 	var cameraViewMatrix = mat4.create();
@@ -109,6 +110,8 @@ function game() {
 		song.notes.forEach(function(note) {
 			note.opacity.target = 1;
 			note.scale.target = 0.2;
+			note.inProgress = false;
+			note.identifier = null;
 		});
 	}
 
@@ -389,17 +392,43 @@ function game() {
 		
 		gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
 
+		// gl.enable(gl.DEPTH_TEST);
+		// gl.depthMask(true);
 
-		gl.enable(gl.DEPTH_TEST);
-		gl.depthMask(true);
+		gl.disable(gl.DEPTH_TEST);
+		gl.depthMask(false);
+		
+		var size = Float32Array.BYTES_PER_ELEMENT * 8;
+
+		gl.useProgram(programs.slide.id);
+		gl.uniformMatrix4fv(programs.slide.projectionViewMatrix, false, cameraProjectionViewMatrix);
+		gl.uniform1f(programs.slide.cameraAspect, cameraAspect);
+		gl.uniform1f(programs.slide.currentTime, musicalTime);
+		gl.uniform1f(programs.slide.beat, beat);
+		gl.uniform1f(programs.slide.thickness, 0.2);
+		
+		slides.forEach(function(slide) {
+			slide.segments.forEach(function(segment) {
+				gl.bindBuffer(gl.ARRAY_BUFFER, segment.attributes);
+				gl.enableVertexAttribArray(programs.slide.position);
+				gl.vertexAttribPointer(programs.slide.position, 3, gl.FLOAT, false, size, 0);
+				gl.enableVertexAttribArray(programs.slide.direction);
+				gl.vertexAttribPointer(programs.slide.direction, 3, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 3);
+				gl.enableVertexAttribArray(programs.slide.side);
+				gl.vertexAttribPointer(programs.slide.side, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 6);
+				gl.enableVertexAttribArray(programs.slide.time);
+				gl.vertexAttribPointer(programs.slide.time, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 7);
+				gl.drawArrays(gl.TRIANGLE_STRIP, 0, segment.vertexCount);
+			});
+		});
 
 		gl.useProgram(programs.track.id);
 		gl.uniformMatrix4fv(programs.track.projectionViewMatrix, false, cameraProjectionViewMatrix);
 		gl.uniform1f(programs.track.cameraAspect, cameraAspect);
 		gl.uniform1f(programs.track.currentTime, musicalTime);
 		gl.uniform1f(programs.track.beat, beat);
+		gl.uniform1f(programs.track.thickness, 0.1 * (1.0 + beat));
 		
-		var size = Float32Array.BYTES_PER_ELEMENT * 8;
 		song.tracks.forEach(function(track) {
 			gl.bindBuffer(gl.ARRAY_BUFFER, track.attributes);
 			gl.enableVertexAttribArray(programs.track.position);
@@ -414,9 +443,6 @@ function game() {
 			// gl.drawArrays(gl.LINE_STRIP, 0, track.vertexCount);
 		})
 
-		gl.disable(gl.DEPTH_TEST);
-		gl.depthMask(false);
-		
 		gl.bindBuffer(gl.ARRAY_BUFFER, geometries.quad.array);
 		
 		gl.useProgram(programs.touch.id);
@@ -429,15 +455,19 @@ function game() {
 		gl.uniform3fv(programs.touch.aura, [0.22, 0.82, 1]);
 
 		slides.forEach(function(note) {
-			if (musicalTime >= note.time) {
-				note.opacity.target = 0;
-				note.scale.target = 1;
-			}
-
 			note.opacity.update(dt);
 			note.scale.update(dt);
 
-			gl.uniform3fv(programs.touch.center, note.segments[0].p0);
+			if (!note.inProgress || musicalTime < note.time)
+				gl.uniform3fv(programs.touch.center, note.segments[0].p0);
+			else if (!note.segments.some(function(segment) {
+				if (segment.from <= musicalTime && musicalTime < segment.to) {
+					var t = (musicalTime - segment.from) / (segment.to - segment.from);
+					gl.uniform3fv(programs.touch.center, [bezierLine(segment, 0, t), bezierLine(segment, 1, t), bezierLine(segment, 2, t)]);
+					return true;
+				}
+			}))
+				gl.uniform3fv(programs.touch.center, note.segments[note.segments.length-1].p3);
 			gl.uniform1f(programs.touch.opacity, note.opacity.current);
 			gl.uniform1f(programs.touch.scale, note.scale.current * (3 + beat));
 
@@ -513,12 +543,18 @@ function game() {
 
 			vec4.transformMat4(clipPosition, [note.position[0], note.position[1], note.position[2], 1], cameraProjectionViewMatrix);
 			vec3.scale(clipPosition, clipPosition, 1 / clipPosition[3]);
-			// console.log(vec2.squaredDistance(clipPosition, touchPosition))
 			//if (vec2.squaredDistance(clipPosition, touchPosition) < 0.2)
 			{
 				console.log(fromMusicalTime(note.time - time));
 				if (window.navigator && dt < 0.1)
 					window.navigator.vibrate(200);
+
+				if (note.segments) {
+					note.inProgress = true;
+					note.identifier = identifier;
+					note.scale.target = 0.5;
+				}
+
 				break;
 			}
 		}

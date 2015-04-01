@@ -82,6 +82,7 @@ class RevisionExporter(bpy.types.Operator, ExportHelper):
                     segments = []
                     for i in range(0, parts):
                         segments.append({
+                            "resolution": spline.resolution_u,
                             "from": float(name_parts[i+1]),
                             "to": float(name_parts[i+2]),
                             "p0": list(points[i].co + object.location),
@@ -91,6 +92,7 @@ class RevisionExporter(bpy.types.Operator, ExportHelper):
                         })
                     notes.append({
                         "time": float(name_parts[1]),
+                        "position": list(object.data.splines[0].bezier_points[0].co + object.location),
                         "segments": segments
                     })
                     

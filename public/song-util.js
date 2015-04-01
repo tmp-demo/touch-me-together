@@ -19,9 +19,8 @@ function bezier1(track, axis, t) {
 			(track.p3[axis] - track.p2[axis]) * t * t * 3;
 }
 
-function generateTrackGeometry(gl) {
+function generateGeometry(gl) {
 	song.tracks.forEach(function(track) {
-		console.log("Track", track.from, track.to);
 		var attributes = [];
 		var indexes = [];
 
@@ -34,8 +33,6 @@ function generateTrackGeometry(gl) {
 			var at = track.from + (track.to - track.from) * t;
 			var c = [bezier(track, 0, t), bezier(track, 1, t), bezier(track, 2, t)];
 			var a = [bezier1(track, 0, t), bezier1(track, 1, t), bezier1(track, 2, t)];
-			console.log("center", c);
-			console.log("derive", a);
 			vec3.normalize(a, a);
 			vec3.add(a, a, c);
 
@@ -50,7 +47,40 @@ function generateTrackGeometry(gl) {
 
 		track.attributes = arrayBuffer;
 		track.vertexCount = 2 * (div + 1);
-	})
+	});
+
+	song.notes.forEach(function(note) {
+		if (note.segments) {
+			note.segments.forEach(function(segment) {
+				var attributes = [];
+				var indexes = [];
+
+				var r0 = vec3.create();
+				var r1 = vec3.create();
+
+				var div = segment.resolution;
+				for (var i = 0; i <= div; ++i) {
+					var t = i / div;
+					var at = segment.from + (segment.to - segment.from) * t;
+					var c = [bezier(segment, 0, t), bezier(segment, 1, t), bezier(segment, 2, t)];
+					var a = [bezier1(segment, 0, t), bezier1(segment, 1, t), bezier1(segment, 2, t)];
+					vec3.normalize(a, a);
+					vec3.add(a, a, c);
+
+					for (var s = 0; s < 2; ++s) {
+						attributes.push(c[0], c[1], c[2], a[0], a[1], a[2], s === 0 ? 1 : -1, at);
+					}
+				}
+
+				var arrayBuffer = gl.createBuffer();
+				gl.bindBuffer(gl.ARRAY_BUFFER, arrayBuffer);
+				gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(attributes), gl.STATIC_DRAW);
+
+				segment.attributes = arrayBuffer;
+				segment.vertexCount = 2 * (div + 1);
+			});
+		}
+	});
 }
 
 function evalKeyframe(keyframes, time) {
