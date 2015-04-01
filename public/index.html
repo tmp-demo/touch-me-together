@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html>
 	<head>
+		<link href='http://fonts.googleapis.com/css?family=Dosis:700' rel='stylesheet' type='text/css'>
 		<style>
 body {
 	margin: 0;
 	background: black;
+	font-family: 'Dosis', sans-serif;
 }
 #game, canvas {
 	position: absolute;
@@ -12,6 +14,69 @@ body {
 	top: 0;
 	width: 100%;
 	height: 100%;
+	perspective: 400px;
+	-webkit-perspective: 400px;
+}
+
+@keyframes feedback {
+	0% {
+		transform: translateY(200%);
+	}
+
+	25% {
+		opacity: 1;
+		/*transform: scale3d(1.5, 1.5, 1);*/
+	}
+
+	100% {
+		transform: translateY(-200%);
+	}
+}
+
+@-webkit-keyframes feedback {
+	0% {
+		-webkit-transform: scale3d(0.5, 0.5, 1) translateY(200%);
+	}
+
+	25% {
+		opacity: 1;
+		-webkit-transform: scale3d(1, 1, 1);
+	}
+
+	100% {
+		-webkit-transform: scale3d(0.5, 0.5, 1) translateY(-200%);
+	}
+}
+
+.feedback {
+	animation-duration: 0.8s;
+	animation-name: feedback;
+	-webkit-animation-duration: 2s;
+	-webkit-animation-name: feedback;
+	position: absolute;
+	top: 10%;
+	left: 0;
+	width: 100%;
+	text-align: center;
+	color: white;
+	font-weight: bold;
+	opacity: 0;
+}
+
+.perfect {
+	font-size: 100px;
+}
+
+.great {
+	font-size: 80px;
+}
+
+.good {
+	font-size: 60px;
+}
+
+.ok {
+	font-size: 40px;
 }
 		</style>
 	</head>

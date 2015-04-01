@@ -65,6 +65,9 @@ function game() {
 		canvas.width = width;
 		canvas.height = height;
 		
+		container.style.width = width + "px";
+		container.style.height = height + "px";
+
 		gl.viewport(0, 0, width, height);
 
 		squareScale = (width > height ? [1 / cameraAspect, 1] : [1, cameraAspect]);
@@ -516,6 +519,33 @@ function game() {
 	render();
 
 	var score = 0;
+
+	function addScore(inc) {
+		score += inc;
+
+		var className, feedback;
+		if (inc > 0.75) {
+			className = "perfect";
+			feedback = "Perfect!";
+		} else if (inc > 0.5) {
+			className = "great";
+			feedback = "Great!";
+		} else if (inc > 0.25) {
+			className = "good";
+			feedback = "Good";
+		} else {
+			className = "ok";
+			feedback = "OK!";
+		}
+		var element = document.createElement("div");
+		element.className = "feedback " + className;
+		element.innerHTML = feedback;
+		container.appendChild(element);
+		setTimeout(function() {
+			container.removeChild(element);
+		}, 3000);
+	}
+
 	var slidesInProgress = {};
 
 	function touchStart(desc, identifier) {
@@ -553,6 +583,8 @@ function game() {
 					note.inProgress = true;
 					note.identifier = identifier;
 					note.scale.target = 0.5;
+				} else {
+					addScore(1 - dt * 2);
 				}
 
 				break;
@@ -587,7 +619,7 @@ function game() {
 		}
 	}, true);
 
-	canvas.addEventListener("touchstart", function(event) {
+	window.addEventListener("touchstart", function(event) {
 		event.preventDefault();
 		// if (window.navigator)
 		// 	window.navigator.vibrate(200);
@@ -596,10 +628,10 @@ function game() {
 			return touchStart(touch, touch.identifier);
 		}
 	}, false);
-	canvas.addEventListener("touchend", function(event) {
+	window.addEventListener("touchend", function(event) {
 		// console.log(event);
 	}, false);
-	canvas.addEventListener("touchmove", function(event) {
+	window.addEventListener("touchmove", function(event) {
 		// console.log(event);
 	}, false);
 }
