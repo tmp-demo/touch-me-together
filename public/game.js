@@ -115,6 +115,7 @@ function game() {
 			note.scale.target = 0.2;
 			note.inProgress = false;
 			note.identifier = null;
+			note.scored = false;
 		});
 	}
 
@@ -548,8 +549,8 @@ function game() {
 
 	var slidesInProgress = {};
 
-	function touchStart(desc, identifier) {
-		var time = musicalTime - touchLatency;
+	function touchStart(desc, identifier, latency) {
+		var time = musicalTime - latency;
 
 		song.notes.sort(function(a, b) {
 			return Math.abs(a.time - time) - Math.abs(b.time - time);
@@ -567,6 +568,9 @@ function game() {
 
 		for (var i = 0, n = song.notes.length; i < n; ++i) {
 			var note = song.notes[i];
+			if (note.scored)
+				continue;
+
 			var dt = Math.abs(note.time - time);
 			if (dt > 0.5)
 				break;
@@ -575,6 +579,7 @@ function game() {
 			vec3.scale(clipPosition, clipPosition, 1 / clipPosition[3]);
 			//if (vec2.squaredDistance(clipPosition, touchPosition) < 0.2)
 			{
+				note.scored = true;
 				console.log(fromMusicalTime(note.time - time));
 				if (window.navigator && dt < 0.1)
 					window.navigator.vibrate(200);
@@ -621,18 +626,41 @@ function game() {
 
 	window.addEventListener("touchstart", function(event) {
 		event.preventDefault();
-		// if (window.navigator)
-		// 	window.navigator.vibrate(200);
 		for (var i = 0, n = event.changedTouches.length; i < n; ++i) {
 			var touch = event.changedTouches[i];
-			return touchStart(touch, touch.identifier);
+			touchStart(touch, touch.identifier, touchLatency);
 		}
 	}, false);
+
 	window.addEventListener("touchend", function(event) {
-		// console.log(event);
+		event.preventDefault();
+		for (var i = 0, n = event.changedTouches.length; i < n; ++i) {
+			var touch = event.changedTouches[i];
+			touchEnd(touch, touch.identifier, touchLatency);
+		}
 	}, false);
+
 	window.addEventListener("touchmove", function(event) {
-		// console.log(event);
+		event.preventDefault();
+		for (var i = 0, n = event.changedTouches.length; i < n; ++i) {
+			var touch = event.changedTouches[i];
+			touchMove(touch, touch.identifier, touchLatency);
+		}
+	}, false);
+
+	window.addEventListener("mousedown", function(event) {
+		event.preventDefault();
+		return touchStart(event, "mouse", 0);
+	}, false);
+
+	window.addEventListener("mouseup", function(event) {
+		event.preventDefault();
+		return touchEnd(event, "mouse", 0);
+	}, false);
+
+	window.addEventListener("mousemove", function(event) {
+		event.preventDefault();
+		return touchMove(event, "mouse", 0);
 	}, false);
 }
 
