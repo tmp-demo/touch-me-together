@@ -160,11 +160,9 @@ function game() {
 		gainNode.connect(audioCtx.destination);
 
 		var offset = fromMusicalTime(map.stages[currentStage].from)
-		var endTime = fromMusicalTime(map.stages[currentStage].to - map.stages[currentStage].from) + currentChunk.endTime
-		gainNode.gain.setTargetAtTime(1.0, currentChunk.endTime, fadeConstant);
-		sourceNode.start(currentChunk.endTime, offset);
-		gainNode.gain.setTargetAtTime(0.0, endTime, fadeConstant);
-		sourceNode.stop(endTime + 1);
+		var duration = fromMusicalTime(map.stages[currentStage].to - map.stages[currentStage].from)
+		var endTime = currentChunk.endTime + duration
+		sourceNode.start(currentChunk.endTime, offset, duration);
 
 		nextChunk = {
 			gainNode: gainNode,
@@ -246,11 +244,9 @@ function game() {
 								gainNode.connect(audioCtx.destination);
 
 								var offset = fromMusicalTime(map.stages[0].from)
-								var endTime = fromMusicalTime(map.stages[0].to - map.stages[0].from) + audioStartTime
-								gainNode.gain.setTargetAtTime(1.0, audioCtx.currentTime, fadeConstant);
-								sourceNode.start(audioCtx.currentTime, offset);
-								gainNode.gain.setTargetAtTime(0.0, endTime, fadeConstant);
-								sourceNode.stop(endTime + 1);
+								var duration = fromMusicalTime(map.stages[0].to - map.stages[0].from)
+								var endTime = audioStartTime + duration
+								sourceNode.start(audioCtx.currentTime, offset, duration);
 
 								currentChunk = {
 									gainNode: gainNode,

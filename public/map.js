@@ -3,11 +3,11 @@ var map = {
 	stages: [
 		{
 			from: 0,
-			to: 8,
+			to: 16,
 		},
 		{
-			from: 8,
-			to: 160
+			from: 16,
+			to: 32,
 		}
-	]	
+	]
 };
