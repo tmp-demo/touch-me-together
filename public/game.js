@@ -221,7 +221,7 @@ function game() {
 						audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 						var request = new XMLHttpRequest();
-						request.open("GET", "/ponponpon.ogg", true);
+						request.open("GET", "/revision15.ogg", true);
 						request.responseType = "arraybuffer";
 
 						request.onload = function() {
@@ -373,6 +373,7 @@ function game() {
 		
 		var fTime = musicalTime % 1;
 		var beat = 1 - fTime * (1 - fTime) * 4;
+		//var beat = Math.exp(-(musicalTime % 1));
 
 		// console.log(beat);
 

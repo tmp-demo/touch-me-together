@@ -1,5 +1,5 @@
 var map = {
-	bpm: 128,
+	bpm: 140,
 	stages: [
 		{
 			from: 0,
@@ -7,7 +7,7 @@ var map = {
 		},
 		{
 			from: 8,
-			to: 16
+			to: 160
 		}
 	]	
 };
