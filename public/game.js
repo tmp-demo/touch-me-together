@@ -526,6 +526,13 @@ function game() {
 
 	var score = 0;
 
+	var feedbackPool = [];
+	for (var  i= 0; i < 30; ++i) {
+		var element = document.createElement("div");
+		container.appendChild(element);
+		feedbackPool.push(element);
+	}
+
 	function addScore(inc) {
 		score += inc;
 
@@ -545,12 +552,14 @@ function game() {
 			className = "ok";
 			feedback = "OK!";
 		}
-		var element = document.createElement("div");
+
+		var element = feedbackPool.pop();
 		element.className = "feedback " + className;
 		element.innerHTML = feedback;
-		container.appendChild(element);
 		setTimeout(function() {
-			container.removeChild(element);
+			element.className = "";
+			element.innerHTML = "";
+			feedbackPool.push(element);
 		}, 3000);
 	}
 
@@ -604,7 +613,7 @@ function game() {
 				} else {
 					addScore(1 - dt * 2);
 					note.opacity.target = 0;
-					note.scale.target = 1;
+					note.scale.target = 0.5;
 				}
 
 				break;
@@ -633,7 +642,7 @@ function game() {
 				note.trailOpacity.target = 0.2;
 			} else {
 				addScore(note.firstScore + 0.5 - dt);
-				note.scale.target = 1;
+				// note.scale.target = 1;
 			}
 
 			note.opacity.target = 0;
