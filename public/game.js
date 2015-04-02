@@ -421,9 +421,8 @@ function game() {
 		});
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, geometries.quad.array);
-		
+		/*
 		gl.useProgram(programs.bg.id);
-		gl.enableVertexAttribArray(programs.bg.position);
 		gl.vertexAttribPointer(programs.bg.position, 2, gl.FLOAT, false, 0, 0);
 
 		gl.uniform3fv(programs.bg.cameraPosition, cameraPosition);
@@ -431,7 +430,7 @@ function game() {
 		gl.uniformMatrix4fv(programs.bg.inverseProjectionViewMatrix, false, inverseProjectionViewMatrix);
 		
 		gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
-
+*/
 		// gl.enable(gl.DEPTH_TEST);
 		// gl.depthMask(true);
 
@@ -451,13 +450,9 @@ function game() {
 			gl.uniform1f(programs.slide.trailOpacity, slide.trailOpacity.current);
 			slide.segments.forEach(function(segment) {
 				gl.bindBuffer(gl.ARRAY_BUFFER, segment.attributes);
-				gl.enableVertexAttribArray(programs.slide.position);
 				gl.vertexAttribPointer(programs.slide.position, 3, gl.FLOAT, false, size, 0);
-				gl.enableVertexAttribArray(programs.slide.direction);
 				gl.vertexAttribPointer(programs.slide.direction, 3, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 3);
-				gl.enableVertexAttribArray(programs.slide.side);
 				gl.vertexAttribPointer(programs.slide.side, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 6);
-				gl.enableVertexAttribArray(programs.slide.time);
 				gl.vertexAttribPointer(programs.slide.time, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 7);
 				gl.drawArrays(gl.TRIANGLE_STRIP, 0, segment.vertexCount);
 			});
@@ -472,13 +467,9 @@ function game() {
 		
 		song.tracks.forEach(function(track) {
 			gl.bindBuffer(gl.ARRAY_BUFFER, track.attributes);
-			gl.enableVertexAttribArray(programs.track.position);
 			gl.vertexAttribPointer(programs.track.position, 3, gl.FLOAT, false, size, 0);
-			gl.enableVertexAttribArray(programs.track.direction);
 			gl.vertexAttribPointer(programs.track.direction, 3, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 3);
-			gl.enableVertexAttribArray(programs.track.side);
 			gl.vertexAttribPointer(programs.track.side, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 6);
-			gl.enableVertexAttribArray(programs.track.time);
 			gl.vertexAttribPointer(programs.track.time, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 7);
 			gl.drawArrays(gl.TRIANGLE_STRIP, 0, track.vertexCount);
 			// gl.drawArrays(gl.LINE_STRIP, 0, track.vertexCount);
@@ -487,7 +478,6 @@ function game() {
 		gl.bindBuffer(gl.ARRAY_BUFFER, geometries.quad.array);
 		
 		gl.useProgram(programs.touch.id);
-		gl.enableVertexAttribArray(programs.touch.position);
 		gl.vertexAttribPointer(programs.touch.position, 2, gl.FLOAT, false, 0, 0);
 
 		gl.uniformMatrix4fv(programs.touch.projectionViewMatrix, false, cameraProjectionViewMatrix);
@@ -515,7 +505,6 @@ function game() {
 		});
 
 		gl.useProgram(programs.cursor.id);
-		gl.enableVertexAttribArray(programs.cursor.position);
 		gl.vertexAttribPointer(programs.cursor.position, 2, gl.FLOAT, false, 0, 0);
 
 		gl.uniformMatrix4fv(programs.cursor.projectionViewMatrix, false, cameraProjectionViewMatrix);
