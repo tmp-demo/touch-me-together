@@ -35,10 +35,14 @@ function createPrograms(gl, descs) {
 			id: id
 		};
 		
+		gl.useProgram(id);
+		
 		var na = gl.getProgramParameter(id, gl.ACTIVE_ATTRIBUTES);
 		for (var i = 0; i < na; ++i) {
 			var a = gl.getActiveAttrib(id, i);
-			program[a.name] = gl.getAttribLocation(id, a.name);
+			var location = gl.getAttribLocation(id, a.name);
+			program[a.name] = location;
+			gl.enableVertexAttribArray(location);
 			console.log("Attribute %s", a.name);
 		}
 		

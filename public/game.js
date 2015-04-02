@@ -373,6 +373,17 @@ function game() {
 
 		// console.log(beat);
 
+		var touchColor = [0, 0.47, 1];
+		var touchAura = [0.22, 0.82, 1];
+
+		var cursorColor = [1.0, 0.47, 0.03];
+		var cursorAura = [1.0, 0.39, 0.39];
+
+		var trackBeforeColor = [1.0, 1.0, 1.0];
+		var trackBeforeAura = [0.8, 0.8, 1.0];
+		var trackAfterColor = cursorColor;
+		var trackAfterAura = cursorAura;
+
 		cameraPosition = [
 			animate(song.animations.cameraX),
 			animate(song.animations.cameraY),
@@ -417,9 +428,8 @@ function game() {
 		});
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, geometries.quad.array);
-		
+		/*
 		gl.useProgram(programs.bg.id);
-		gl.enableVertexAttribArray(programs.bg.position);
 		gl.vertexAttribPointer(programs.bg.position, 2, gl.FLOAT, false, 0, 0);
 
 		gl.uniform3fv(programs.bg.cameraPosition, cameraPosition);
@@ -427,7 +437,7 @@ function game() {
 		gl.uniformMatrix4fv(programs.bg.inverseProjectionViewMatrix, false, inverseProjectionViewMatrix);
 		
 		gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
-
+*/
 		// gl.enable(gl.DEPTH_TEST);
 		// gl.depthMask(true);
 
@@ -447,13 +457,9 @@ function game() {
 			gl.uniform1f(programs.slide.trailOpacity, slide.trailOpacity.current);
 			slide.segments.forEach(function(segment) {
 				gl.bindBuffer(gl.ARRAY_BUFFER, segment.attributes);
-				gl.enableVertexAttribArray(programs.slide.position);
 				gl.vertexAttribPointer(programs.slide.position, 3, gl.FLOAT, false, size, 0);
-				gl.enableVertexAttribArray(programs.slide.direction);
 				gl.vertexAttribPointer(programs.slide.direction, 3, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 3);
-				gl.enableVertexAttribArray(programs.slide.side);
 				gl.vertexAttribPointer(programs.slide.side, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 6);
-				gl.enableVertexAttribArray(programs.slide.time);
 				gl.vertexAttribPointer(programs.slide.time, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 7);
 				gl.drawArrays(gl.TRIANGLE_STRIP, 0, segment.vertexCount);
 			});
@@ -465,16 +471,16 @@ function game() {
 		gl.uniform1f(programs.track.currentTime, musicalTime);
 		gl.uniform1f(programs.track.beat, beat);
 		gl.uniform1f(programs.track.thickness, 0.1 * (1.0 + beat));
+		gl.uniform3fv(programs.track.beforeColor, trackBeforeColor);
+		gl.uniform3fv(programs.track.beforeAura, trackBeforeAura);
+		gl.uniform3fv(programs.track.afterColor, trackAfterColor);
+		gl.uniform3fv(programs.track.afterAura, trackAfterAura);
 		
 		song.tracks.forEach(function(track) {
 			gl.bindBuffer(gl.ARRAY_BUFFER, track.attributes);
-			gl.enableVertexAttribArray(programs.track.position);
 			gl.vertexAttribPointer(programs.track.position, 3, gl.FLOAT, false, size, 0);
-			gl.enableVertexAttribArray(programs.track.direction);
 			gl.vertexAttribPointer(programs.track.direction, 3, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 3);
-			gl.enableVertexAttribArray(programs.track.side);
 			gl.vertexAttribPointer(programs.track.side, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 6);
-			gl.enableVertexAttribArray(programs.track.time);
 			gl.vertexAttribPointer(programs.track.time, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 7);
 			gl.drawArrays(gl.TRIANGLE_STRIP, 0, track.vertexCount);
 			// gl.drawArrays(gl.LINE_STRIP, 0, track.vertexCount);
@@ -483,13 +489,12 @@ function game() {
 		gl.bindBuffer(gl.ARRAY_BUFFER, geometries.quad.array);
 		
 		gl.useProgram(programs.touch.id);
-		gl.enableVertexAttribArray(programs.touch.position);
 		gl.vertexAttribPointer(programs.touch.position, 2, gl.FLOAT, false, 0, 0);
 
 		gl.uniformMatrix4fv(programs.touch.projectionViewMatrix, false, cameraProjectionViewMatrix);
 		gl.uniform2fv(programs.touch.squareScale, squareScale);
-		gl.uniform3fv(programs.touch.color, [0, 0.47, 1]);
-		gl.uniform3fv(programs.touch.aura, [0.22, 0.82, 1]);
+		gl.uniform3fv(programs.touch.color, touchColor);
+		gl.uniform3fv(programs.touch.aura, touchAura);
 
 		slides.forEach(function(note) {
 			gl.uniform3fv(programs.touch.center, note.position);
@@ -511,14 +516,13 @@ function game() {
 		});
 
 		gl.useProgram(programs.cursor.id);
-		gl.enableVertexAttribArray(programs.cursor.position);
 		gl.vertexAttribPointer(programs.cursor.position, 2, gl.FLOAT, false, 0, 0);
 
 		gl.uniformMatrix4fv(programs.cursor.projectionViewMatrix, false, cameraProjectionViewMatrix);
 		gl.uniform2fv(programs.cursor.squareScale, squareScale);
 		gl.uniform1f(programs.cursor.scale, 0.1 * (3 + beat));
-		gl.uniform3fv(programs.cursor.color, [1, 0.47, 0.03]);
-		gl.uniform1f(programs.cursor.opacity, 1);
+		gl.uniform3fv(programs.cursor.color, cursorColor);
+		gl.uniform3fv(programs.cursor.aura, cursorAura);
 
 		song.tracks.forEach(function(track) {
 			if (track.from <= musicalTime && musicalTime < track.to) {
@@ -532,6 +536,13 @@ function game() {
 	}
 
 	var score = 0;
+
+	var feedbackPool = [];
+	for (var  i= 0; i < 30; ++i) {
+		var element = document.createElement("div");
+		container.appendChild(element);
+		feedbackPool.push(element);
+	}
 
 	function addScore(inc) {
 		score += inc;
@@ -552,12 +563,14 @@ function game() {
 			className = "ok";
 			feedback = "OK!";
 		}
-		var element = document.createElement("div");
+
+		var element = feedbackPool.pop();
 		element.className = "feedback " + className;
 		element.innerHTML = feedback;
-		container.appendChild(element);
 		setTimeout(function() {
-			container.removeChild(element);
+			element.className = "";
+			element.innerHTML = "";
+			feedbackPool.push(element);
 		}, 3000);
 	}
 
@@ -611,7 +624,7 @@ function game() {
 				} else {
 					addScore(1 - dt * 2);
 					note.opacity.target = 0;
-					note.scale.target = 1;
+					note.scale.target = 0.5;
 				}
 
 				break;
@@ -640,7 +653,7 @@ function game() {
 				note.trailOpacity.target = 0.2;
 			} else {
 				addScore(note.firstScore + 0.5 - dt);
-				note.scale.target = 1;
+				// note.scale.target = 1;
 			}
 
 			note.opacity.target = 0;
