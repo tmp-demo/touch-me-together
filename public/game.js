@@ -474,6 +474,8 @@ function game() {
 		gl.uniform1f(programs.slide.currentTime, musicalTime);
 		gl.uniform1f(programs.slide.beat, beat);
 		gl.uniform1f(programs.slide.thickness, 0.2);
+		gl.uniform3fv(programs.slide.center, touchAura);
+		gl.uniform3fv(programs.slide.outside, touchColor);
 		
 		slides.forEach(function(slide) {
 			gl.uniform1f(programs.slide.trailOpacity, slide.trailOpacity.current);
