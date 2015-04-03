@@ -351,7 +351,7 @@ function game() {
 
 		if (isPlaying) {
 			musicalTime = toMusicalTime(audioCtx.currentTime - audioStartTime);
-			if (musicalTime >= map.stages[currentStage].to) {
+			while (musicalTime >= map.stages[currentStage].to) {
 				var duration = map.stages[currentStage].to - map.stages[currentStage].from;
 				musicalTime -= duration;
 				audioStartTime += fromMusicalTime(duration);
@@ -365,13 +365,13 @@ function game() {
 			var duration = map.stages[currentStage].to - map.stages[currentStage].from;
 
 			masterMusicalTime += dmt;
-			if (masterMusicalTime >= map.stages[currentStage].to) {
+			while (masterMusicalTime >= map.stages[currentStage].to) {
 				masterMusicalTime -= duration;
 				resetNotes();
 			}
 
 			clientMusicalTime += dmt;
-			if (clientMusicalTime >= map.stages[currentStage].to) {
+			while (clientMusicalTime >= map.stages[currentStage].to) {
 				clientMusicalTime -= duration;
 			}
 
