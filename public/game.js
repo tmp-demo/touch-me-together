@@ -74,6 +74,7 @@ function game() {
 	var cameraFov = 1.2;
 	var cameraPosition;
 	var cameraTarget;
+	var cameraTilt;
 
 	var squareScale;
 
@@ -256,8 +257,8 @@ function game() {
 								audioStartTime = audioCtx.currentTime;
 								isPlaying = true;
 								resetNotes();
-								currentStage = 0;
-								currentStageTarget = 0;
+								currentStage = 6; // TODO
+								currentStageTarget = 6;
 
 								var gainNode = audioCtx.createGain();
 								var sourceNode = audioCtx.createBufferSource();
@@ -265,8 +266,8 @@ function game() {
 								sourceNode.connect(gainNode);
 								gainNode.connect(audioCtx.destination);
 
-								var offset = fromMusicalTime(map.stages[0].from)
-								var duration = fromMusicalTime(map.stages[0].to - map.stages[0].from)
+								var offset = fromMusicalTime(map.stages[currentStage].from)
+								var duration = fromMusicalTime(map.stages[currentStage].to - map.stages[currentStage].from)
 								var endTime = audioStartTime + duration
 								sourceNode.start(audioCtx.currentTime, offset, duration);
 
@@ -275,6 +276,8 @@ function game() {
 									sourceNode: sourceNode,
 									endTime: endTime
 								};
+
+								audioStartTime -= fromMusicalTime(79); // TODO
 
 								pushNextSource();
 							}, function() {
@@ -430,7 +433,6 @@ function game() {
 		//var beat = Math.exp(-(musicalTime % 1));
 
 		// console.log(musicalTime);
-		// console.log(currentStage);
 
 		var touchColor = [0, 0.47, 1];
 		var touchAura = [0.22, 0.82, 1];
@@ -448,14 +450,17 @@ function game() {
 			animate(song.animations.cameraY),
 			animate(song.animations.cameraZ),
 		]
-
+		
 		cameraTarget = [
 			animate(song.animations.camTargetX),
 			animate(song.animations.camTargetY),
 			animate(song.animations.camTargetZ),
 		]
 
-		mat4.lookAtTilt(cameraViewMatrix, cameraPosition, cameraTarget, [0,0,1], -animate(song.animations.camTilt));
+		cameraTilt = -animate(song.animations.camTilt);
+
+		// console.log(cameraPosition, cameraTarget, cameraTilt);
+		mat4.lookAtTilt(cameraViewMatrix, cameraPosition, cameraTarget, [0,0,1], cameraTilt);
 
 		mat4.multiply(cameraProjectionViewMatrix, cameraProjectionMatrix, cameraViewMatrix);
 		mat4.invert(inverseProjectionViewMatrix, cameraProjectionViewMatrix);
@@ -552,7 +557,7 @@ function game() {
 		gl.uniform1f(programs.line.thickness, 0.1 * (1.0 + beat));
 		gl.uniform3fv(programs.line.color, [1, 1, 1]);
 		gl.uniform3fv(programs.line.aura, [1, 1, 1]);
-		gl.uniform1f(programs.line.opacity, 1);;
+		gl.uniform1f(programs.line.opacity, musicalTime > 80 ? Math.max(1 - (musicalTime - 80) * 0.25, 0) : 1);
 		
 		gl.bindBuffer(gl.ARRAY_BUFFER, lineGeometry.attributes);
 		gl.vertexAttribPointer(programs.line.position, 3, gl.FLOAT, false, size, 0);
