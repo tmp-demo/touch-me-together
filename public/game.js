@@ -154,6 +154,8 @@ function game() {
 	var currentChunk, nextChunk;
 	var fadeConstant = 0.2;
 	var currentStage = 0;
+	var currentStageTarget = 0;
+	var currentMasterStage = 0;
 
 	function toMusicalTime(t) {
 		return t / 60 * map.bpm;
@@ -165,17 +167,21 @@ function game() {
 
 	var touchLatency = fromMusicalTime(0.1);
 
-	function pushNextSource() {
+	function pushNextSource(nextStage) {
 		var gainNode = audioCtx.createGain();
 		var sourceNode = audioCtx.createBufferSource();
 		sourceNode.buffer = audioBuffer;
 		sourceNode.connect(gainNode);
 		gainNode.connect(audioCtx.destination);
 
-		var offset = fromMusicalTime(map.stages[currentStage].from)
-		var duration = fromMusicalTime(map.stages[currentStage].to - map.stages[currentStage].from)
+		if (typeof nextStage === "undefined")
+			nextStage = (map.stages[currentStage].loop ? currentStage : currentStage + 1);
+
+		var offset = fromMusicalTime(map.stages[nextStage].from)
+		var duration = fromMusicalTime(map.stages[nextStage].to - map.stages[nextStage].from)
 		var endTime = currentChunk.endTime + duration
 		sourceNode.start(currentChunk.endTime, offset, duration);
+		console.log("push", nextStage, currentChunk.endTime, endTime, audioCtx.currentTime);
 
 		nextChunk = {
 			gainNode: gainNode,
@@ -185,6 +191,7 @@ function game() {
 	}
 
 	function discardNextSource() {
+		console.log("discard");
 		nextChunk.sourceNode.disconnect();
 		nextChunk.sourceNode.stop(audioCtx.currentTime);
 
@@ -249,6 +256,8 @@ function game() {
 								audioStartTime = audioCtx.currentTime;
 								isPlaying = true;
 								resetNotes();
+								currentStage = 0;
+								currentStageTarget = 0;
 
 								var gainNode = audioCtx.createGain();
 								var sourceNode = audioCtx.createBufferSource();
@@ -301,7 +310,7 @@ function game() {
 					break;
 
 				case 'stage':
-					currentStage = message[1];
+					currentStage = currentMasterStage = message[1];
 					break;
 
 				case 'summary':
@@ -359,12 +368,17 @@ function game() {
 		if (isPlaying) {
 			musicalTime = toMusicalTime(audioCtx.currentTime - audioStartTime);
 			while (musicalTime >= map.stages[currentStage].to) {
-				var duration = map.stages[currentStage].to - map.stages[currentStage].from;
-				musicalTime -= duration;
-				audioStartTime += fromMusicalTime(duration);
+				console.log("overflow")
+				if (!map.stages[currentStage].loop || currentStageTarget > currentStage)
+					++currentStage;
+				else {
+					var duration = map.stages[currentStage].to - map.stages[currentStage].from;
+					musicalTime -= duration;
+					audioStartTime += fromMusicalTime(duration);
+					resetNotes();
+				}
 				currentChunk = nextChunk;
 				pushNextSource();
-				resetNotes();
 			}
 		}
 		else {
@@ -372,14 +386,23 @@ function game() {
 			var duration = map.stages[currentStage].to - map.stages[currentStage].from;
 
 			masterMusicalTime += dmt;
-			while (masterMusicalTime >= map.stages[currentStage].to) {
-				masterMusicalTime -= duration;
-				resetNotes();
+			while (masterMusicalTime >= map.stages[currentMasterStage].to) {
+				if (!map.stages[currentMasterStage].loop)
+					++currentMasterStage;
+				else {
+					masterMusicalTime -= duration;
+					resetNotes();
+				}
 			}
 
 			clientMusicalTime += dmt;
 			while (clientMusicalTime >= map.stages[currentStage].to) {
-				clientMusicalTime -= duration;
+				if (!map.stages[currentStage].loop)
+					++currentStage;
+				else {
+					clientMusicalTime -= duration;
+					resetNotes();
+				}
 			}
 
 			var diff = masterMusicalTime - clientMusicalTime;
@@ -406,7 +429,8 @@ function game() {
 		var beat = 1 - fTime * (1 - fTime) * 4;
 		//var beat = Math.exp(-(musicalTime % 1));
 
-		// console.log(beat);
+		// console.log(musicalTime);
+		// console.log(currentStage);
 
 		var touchColor = [0, 0.47, 1];
 		var touchAura = [0.22, 0.82, 1];
@@ -825,7 +849,7 @@ function game() {
 
 				case 37: // left
 					if (document.activeElement.id !== "message") {
-						currentStage = Math.max(currentStage - 1, 0);
+						currentStage = currentStageTarget = Math.max(currentStage - 1, 0);
 						send(['stage', currentStage]);
 					}
 					break;
@@ -833,9 +857,9 @@ function game() {
 				case 39: // right
 					if (document.activeElement.id !== "message") {
 						discardNextSource();
-						currentStage = Math.min(currentStage + 1, map.stages.length - 1);
-						pushNextSource();
-						send(['stage', currentStage]);
+						currentStageTarget = Math.min(currentStage + 1, map.stages.length - 1);
+						pushNextSource(currentStageTarget);
+						send(['stage', currentStageTarget]);
 					}
 					break;
 			}
