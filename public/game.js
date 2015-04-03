@@ -555,7 +555,7 @@ function game() {
 			gl.uniformMatrix4fv(programs.line.modelMatrix, false, modelMatrix);
 			gl.drawArrays(gl.TRIANGLE_STRIP, 0, lineGeometry.vertexCount);
 
-			mat4.translate(modelMatrix, modelMatrix, [0, 4 * offset, 0]);
+			mat4.translate(modelMatrix, modelMatrix, [0, 3 * offset, 0]);
 			gl.uniformMatrix4fv(programs.line.modelMatrix, false, modelMatrix);
 			gl.drawArrays(gl.TRIANGLE_STRIP, 0, lineGeometry.vertexCount);
 
