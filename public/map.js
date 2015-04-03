@@ -1,6 +1,6 @@
 var map = {
 	bpm: 140,
-	end: 6,
+	end: 64,
 	stages: [
 		{
 			from: 0,
