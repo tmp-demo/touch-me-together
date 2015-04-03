@@ -1,3 +1,21 @@
+function HSVtoRGB(h, s, v) {
+    var r, g, b, i, f, p, q, t;
+    i = Math.floor(h * 6);
+    f = h * 6 - i;
+    p = v * (1 - s);
+    q = v * (1 - f * s);
+    t = v * (1 - (1 - f) * s);
+    switch (i % 6) {
+        case 0: r = v, g = t, b = p; break;
+        case 1: r = q, g = v, b = p; break;
+        case 2: r = p, g = v, b = t; break;
+        case 3: r = p, g = q, b = v; break;
+        case 4: r = t, g = p, b = v; break;
+        case 5: r = v, g = p, b = q; break;
+    }
+    return [r, g, b];
+}
+
 function quadGeometry(gl) {
 	var attributes = new Float32Array([
 		- 0.5, - 0.5, 
@@ -39,22 +57,30 @@ function game() {
 		slide: ['line', 'slide'],
 		touch: ['billboard', 'touch'],
 		track: ['line', 'track'],
+		trail: ['billboard', 'trail'],
 	});
 	
 	var cameraViewMatrix = mat4.create();
 	var cameraProjectionMatrix = mat4.create();
 	var cameraProjectionViewMatrix = mat4.create();
+	var inverseProjectionViewMatrix = mat4.create();
 	var cameraAspect;
 	var cameraFov = 1.2;
 	var cameraPosition;
 
 	var squareScale;
 
+	var trailCameraViewMatrix = mat4.create();
+	var trailCameraProjectionViewMatrix = mat4.create();
+	mat4.lookAt(trailCameraViewMatrix, [0, 0, 0.3], [0, 0, 0], [0, 1, 0]);
+
 	function updateCameraProjectionMatrix() {
 		if (cameraAspect > 1)
 			mat4.perspective(cameraProjectionMatrix, cameraFov, cameraAspect, 0.1, 100);
 		else
 			mat4.perspectiveX(cameraProjectionMatrix, cameraFov, cameraAspect, 0.1, 100);
+
+		mat4.multiply(trailCameraProjectionViewMatrix, cameraProjectionMatrix, trailCameraViewMatrix);
 	}
 
 	function onWindowResize(event) {
@@ -77,26 +103,6 @@ function game() {
 	
 	window.addEventListener('resize', onWindowResize);
 	onWindowResize();
-	
-	var inverseProjectionViewMatrix = new Float32Array(16);
-	var mouse = vec2.create();
-	function unprojectMouse(event) {
-		var vec = vec4.fromValues(
-			( (event.clientX - left) / width ) * 2 - 1,
-			- ( (event.clientY - top) / height ) * 2 + 1,
-			0,
-			1
-		);
-		
-		vec4.transformMat4(vec, vec, inverseProjectionViewMatrix);
-		vec3.scale(vec, vec, 1 / vec[3]);
-		
-		vec3.subtract(vec, vec, cameraPosition);
-		
-		var distance = - cameraPosition[2] / vec[2];
-		
-		vec2.scaleAndAdd(mouse, cameraPosition, vec, distance);
-	};
 	
 	var touches = [];
 	var slides = [];
@@ -449,8 +455,9 @@ function game() {
 			note.trailOpacity.update(dt);
 		});
 
+/*
 		gl.bindBuffer(gl.ARRAY_BUFFER, geometries.quad.array);
-		/*
+		
 		gl.useProgram(programs.bg.id);
 		gl.vertexAttribPointer(programs.bg.position, 2, gl.FLOAT, false, 0, 0);
 
@@ -466,6 +473,31 @@ function game() {
 		gl.disable(gl.DEPTH_TEST);
 		gl.depthMask(false);
 		
+		// TRAILS
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, geometries.quad.array);
+		
+		gl.useProgram(programs.trail.id);
+		gl.vertexAttribPointer(programs.trail.position, 2, gl.FLOAT, false, 0, 0);
+
+		gl.uniformMatrix4fv(programs.trail.projectionViewMatrix, false, trailCameraProjectionViewMatrix);
+		gl.uniform2fv(programs.trail.squareScale, squareScale);
+		gl.uniform1f(programs.trail.opacity, 0.8);
+		gl.uniform1f(programs.trail.scale, 0.2);
+
+		trailPoints.forEach(function(point) {
+			var x = point.center[0];
+			var y = point.center[1];
+			x = 0.5 - (x + musicalTime / 8) % 1; 
+			y -= 0.5;
+			gl.uniform3fv(programs.trail.center, [x, y, 0]);
+			gl.uniform3fv(programs.trail.color, point.color);
+
+			gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+		});
+
+		// SLIDES
+
 		var size = Float32Array.BYTES_PER_ELEMENT * 8;
 
 		gl.useProgram(programs.slide.id);
@@ -489,6 +521,8 @@ function game() {
 			});
 		});
 
+		// TRACKS
+
 		gl.useProgram(programs.track.id);
 		gl.uniformMatrix4fv(programs.track.projectionViewMatrix, false, cameraProjectionViewMatrix);
 		gl.uniform1f(programs.track.cameraAspect, cameraAspect);
@@ -509,6 +543,8 @@ function game() {
 			gl.drawArrays(gl.TRIANGLE_STRIP, 0, track.vertexCount);
 			// gl.drawArrays(gl.LINE_STRIP, 0, track.vertexCount);
 		})
+
+		// NOTES
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, geometries.quad.array);
 		
@@ -538,6 +574,8 @@ function game() {
 
 			gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
 		});
+
+		// CURSORS
 
 		gl.useProgram(programs.cursor.id);
 		gl.vertexAttribPointer(programs.cursor.position, 2, gl.FLOAT, false, 0, 0);
