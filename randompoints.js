@@ -1,4 +1,4 @@
-var squaredDistanceMin = 0.01;
+var squaredDistanceMin = 0.02;
 
 function HSVtoRGB(h, s, v) {
     var r, g, b, i, f, p, q, t;
@@ -24,13 +24,15 @@ var tries = 0;
 while (tries < 100) {
 	var x = Math.random();
 	var y = Math.random();
+	var z = Math.random();
 	if (!points.some(function(point) {
 		var dx = (x - point.center[0] + 1.5) % 1 - 0.5;
 		var dy = (y - point.center[1] + 1.5) % 1 - 0.5;
-		return (dx * dx + dy * dy < squaredDistanceMin);
+		var dz = (y - point.center[2] + 1.5) % 1 - 0.5;
+		return (dx * dx + dy * dy + dz * dz < squaredDistanceMin);
 	})) {
 		points.push({
-			center: [x, y],
+			center: [x, y, z],
 			color: HSVtoRGB(Math.random(), 0.5, 1)
 		});
 		tries = 0;
@@ -39,3 +41,4 @@ while (tries < 100) {
 }
 
 console.log("var trailPoints =", points, ";");
+console.error("%d points", points.length);
