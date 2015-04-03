@@ -51,15 +51,21 @@ function game() {
 	
 	generateGeometry(gl);
 	
+	var lineGeometry = generateLineGeometry(gl, [-100, 0, 0], [100, 0, 0], 25);
+	var cubeGeometries = generateWireframeCubeGeometries(gl);
+
 	var programs = createPrograms(gl, {
 		bg: ['fullscreen', 'bg'],
 		cursor: ['billboard', 'cursor'],
-		slide: ['line', 'slide'],
+		line: ['line', 'line'],
+		slide: ['timedline', 'slide'],
 		touch: ['billboard', 'touch'],
-		track: ['line', 'track'],
+		track: ['timedline', 'track'],
 		trail: ['billboard', 'trail'],
 	});
 	
+	var identityMatrix = mat4.create();
+
 	var cameraViewMatrix = mat4.create();
 	var cameraProjectionMatrix = mat4.create();
 	var cameraProjectionViewMatrix = mat4.create();
@@ -67,6 +73,7 @@ function game() {
 	var cameraAspect;
 	var cameraFov = 1.2;
 	var cameraPosition;
+	var cameraTarget;
 
 	var squareScale;
 
@@ -418,11 +425,13 @@ function game() {
 			animate(song.animations.cameraZ),
 		]
 
-		mat4.lookAtTilt(cameraViewMatrix, cameraPosition, [
+		cameraTarget = [
 			animate(song.animations.camTargetX),
 			animate(song.animations.camTargetY),
 			animate(song.animations.camTargetZ),
-		], [0,0,1], -animate(song.animations.camTilt));
+		]
+
+		mat4.lookAtTilt(cameraViewMatrix, cameraPosition, cameraTarget, [0,0,1], -animate(song.animations.camTilt));
 
 		mat4.multiply(cameraProjectionViewMatrix, cameraProjectionMatrix, cameraViewMatrix);
 		mat4.invert(inverseProjectionViewMatrix, cameraProjectionViewMatrix);
@@ -473,6 +482,83 @@ function game() {
 		gl.disable(gl.DEPTH_TEST);
 		gl.depthMask(false);
 		
+		// CUBES
+		/*
+		var offset = 2;
+		var x = Math.floor(cameraTarget[0] / offset) * offset;
+		var y = Math.floor(cameraTarget[1] / offset) * offset;
+		var size = Float32Array.BYTES_PER_ELEMENT * 7;
+
+		gl.useProgram(programs.line.id);
+		gl.uniformMatrix4fv(programs.line.projectionViewMatrix, false, cameraProjectionViewMatrix);
+		gl.uniform1f(programs.line.cameraAspect, cameraAspect);
+		gl.uniform1f(programs.line.thickness, 0.1 * (1.0 + beat));
+		gl.uniform3fv(programs.line.color, [1, 1, 1]);
+		gl.uniform3fv(programs.line.aura, [1, 1, 1]);
+		gl.uniform1f(programs.line.opacity, 1);;
+		
+		cubeGeometries.forEach(function(geometry) {
+			gl.bindBuffer(gl.ARRAY_BUFFER, geometry.attributes);
+			gl.vertexAttribPointer(programs.line.position, 3, gl.FLOAT, false, size, 0);
+			gl.vertexAttribPointer(programs.line.direction, 3, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 3);
+			gl.vertexAttribPointer(programs.line.side, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 6);
+
+			for (var i = - 2; i <= 2; ++i)
+				for (var j = - 2; j <= 2; ++j) {
+					var modelMatrix = mat4.create();
+					mat4.translate(modelMatrix, modelMatrix, [x + i * offset, y + j * offset, -2]);
+					gl.uniformMatrix4fv(programs.line.modelMatrix, false, modelMatrix);
+
+					gl.drawArrays(gl.TRIANGLE_STRIP, 0, geometry.vertexCount);
+				}
+		});
+		*/
+		// LINES
+
+		var offset = 2;
+		var x = (Math.floor(cameraTarget[0] / offset) + 0.5) * offset;
+		var y = (Math.floor(cameraTarget[1] / offset) + 0.5) * offset;
+		var size = Float32Array.BYTES_PER_ELEMENT * 7;
+
+		gl.useProgram(programs.line.id);
+		gl.uniformMatrix4fv(programs.line.projectionViewMatrix, false, cameraProjectionViewMatrix);
+		gl.uniform1f(programs.line.cameraAspect, cameraAspect);
+		gl.uniform1f(programs.line.thickness, 0.1 * (1.0 + beat));
+		gl.uniform3fv(programs.line.color, [1, 1, 1]);
+		gl.uniform3fv(programs.line.aura, [1, 1, 1]);
+		gl.uniform1f(programs.line.opacity, 1);;
+		
+		gl.bindBuffer(gl.ARRAY_BUFFER, lineGeometry.attributes);
+		gl.vertexAttribPointer(programs.line.position, 3, gl.FLOAT, false, size, 0);
+		gl.vertexAttribPointer(programs.line.direction, 3, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 3);
+		gl.vertexAttribPointer(programs.line.side, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 6);
+
+		for (var i = - 10; i <= 10; ++i) {
+			var modelMatrix = mat4.create();
+			// mat4.rotateZ(modelMatrix, modelMatrix, Math.PI / 4);
+			mat4.translate(modelMatrix, modelMatrix, [x + i * offset, y + i * offset, -1]);
+			gl.uniformMatrix4fv(programs.line.modelMatrix, false, modelMatrix);
+			gl.drawArrays(gl.TRIANGLE_STRIP, 0, lineGeometry.vertexCount);
+
+			mat4.rotateZ(modelMatrix, modelMatrix, Math.PI / 2);
+			gl.uniformMatrix4fv(programs.line.modelMatrix, false, modelMatrix);
+			gl.drawArrays(gl.TRIANGLE_STRIP, 0, lineGeometry.vertexCount);
+
+		}
+		
+		for (var i = - 10; i <= 10; ++i) {
+			var modelMatrix = mat4.create();
+			mat4.rotateY(modelMatrix, modelMatrix, Math.PI / 2);
+			mat4.translate(modelMatrix, modelMatrix, [1, y - 2 * offset, x + i * offset]);
+			gl.uniformMatrix4fv(programs.line.modelMatrix, false, modelMatrix);
+			gl.drawArrays(gl.TRIANGLE_STRIP, 0, lineGeometry.vertexCount);
+
+			mat4.translate(modelMatrix, modelMatrix, [0, 4 * offset, 0]);
+			gl.uniformMatrix4fv(programs.line.modelMatrix, false, modelMatrix);
+			gl.drawArrays(gl.TRIANGLE_STRIP, 0, lineGeometry.vertexCount);
+
+		}
+		
 		// TRAILS
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, geometries.quad.array);
@@ -482,7 +568,7 @@ function game() {
 
 		gl.uniformMatrix4fv(programs.trail.projectionViewMatrix, false, trailCameraProjectionViewMatrix);
 		gl.uniform2fv(programs.trail.squareScale, squareScale);
-		gl.uniform1f(programs.trail.opacity, 0.8);
+		gl.uniform1f(programs.trail.opacity, 0.5);
 		gl.uniform1f(programs.trail.scale, 0.2);
 
 		trailPoints.forEach(function(point) {
@@ -502,6 +588,7 @@ function game() {
 
 		gl.useProgram(programs.slide.id);
 		gl.uniformMatrix4fv(programs.slide.projectionViewMatrix, false, cameraProjectionViewMatrix);
+		gl.uniformMatrix4fv(programs.slide.modelMatrix, false, identityMatrix);
 		gl.uniform1f(programs.slide.cameraAspect, cameraAspect);
 		gl.uniform1f(programs.slide.currentTime, musicalTime);
 		gl.uniform1f(programs.slide.beat, beat);
@@ -525,6 +612,7 @@ function game() {
 
 		gl.useProgram(programs.track.id);
 		gl.uniformMatrix4fv(programs.track.projectionViewMatrix, false, cameraProjectionViewMatrix);
+		gl.uniformMatrix4fv(programs.track.modelMatrix, false, identityMatrix);
 		gl.uniform1f(programs.track.cameraAspect, cameraAspect);
 		gl.uniform1f(programs.track.currentTime, musicalTime);
 		gl.uniform1f(programs.track.beat, beat);
@@ -541,7 +629,6 @@ function game() {
 			gl.vertexAttribPointer(programs.track.side, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 6);
 			gl.vertexAttribPointer(programs.track.time, 1, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 7);
 			gl.drawArrays(gl.TRIANGLE_STRIP, 0, track.vertexCount);
-			// gl.drawArrays(gl.LINE_STRIP, 0, track.vertexCount);
 		})
 
 		// NOTES

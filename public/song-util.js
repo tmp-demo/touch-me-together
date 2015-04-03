@@ -22,7 +22,6 @@ function bezier1(track, axis, t) {
 function generateGeometry(gl) {
 	song.tracks.forEach(function(track) {
 		var attributes = [];
-		var indexes = [];
 
 		var r0 = vec3.create();
 		var r1 = vec3.create();
@@ -80,6 +79,52 @@ function generateGeometry(gl) {
 				segment.vertexCount = 2 * (div + 1);
 			});
 		}
+	});
+}
+
+function generateLineGeometry(gl, point0, point1, segments) {
+	var diff = vec3.create();
+	var a = vec3.create();
+	var attributes = [];
+
+	vec3.subtract(diff, point1, point0);
+	vec3.normalize(a, diff);
+	vec3.add(a, a, point0);
+
+	var c = vec3.create();
+	for (var i = 0; i <= segments; ++i) {
+		vec3.scaleAndAdd(c, point0, diff, i / segments);
+		for (var s = 0; s < 2; ++s) {
+			attributes.push(c[0], c[1], c[2], a[0], a[1], a[2], s === 0 ? 1 : -1);
+		}
+	}
+
+	var arrayBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, arrayBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(attributes), gl.STATIC_DRAW);
+
+	return {
+		attributes: arrayBuffer,
+		vertexCount: 2 * (segments + 1)
+	};
+}
+
+function generateWireframeCubeGeometries(gl) {
+	return [
+		[[-0.5, -0.5, -0.5], [ 0.5, -0.5, -0.5]],
+		[[-0.5, -0.5,  0.5], [ 0.5, -0.5,  0.5]],
+		[[-0.5,  0.5, -0.5], [ 0.5,  0.5, -0.5]],
+		[[-0.5,  0.5,  0.5], [ 0.5,  0.5,  0.5]],
+		[[-0.5, -0.5, -0.5], [-0.5,  0.5, -0.5]],
+		[[-0.5, -0.5,  0.5], [-0.5,  0.5,  0.5]],
+		[[ 0.5, -0.5, -0.5], [ 0.5,  0.5, -0.5]],
+		[[ 0.5, -0.5,  0.5], [ 0.5,  0.5,  0.5]],
+		[[-0.5, -0.5, -0.5], [-0.5, -0.5,  0.5]],
+		[[-0.5,  0.5, -0.5], [-0.5,  0.5,  0.5]],
+		[[ 0.5, -0.5, -0.5], [ 0.5, -0.5,  0.5]],
+		[[ 0.5,  0.5, -0.5], [ 0.5,  0.5,  0.5]],
+	].map(function(points) {
+		return generateLineGeometry(gl, points[0], points[1], 1);
 	});
 }
 

@@ -1,12 +1,16 @@
 attribute vec3 position;
 attribute vec3 direction;
 attribute float side;
+attribute float time;
 
 uniform mat4 projectionViewMatrix;
 uniform mat4 modelMatrix;
 uniform float cameraAspect;
+uniform float currentTime;
+uniform float beat;
 uniform float thickness;
 
+varying float vTime;
 varying float vSide;
 
 void main() {
@@ -26,5 +30,6 @@ void main() {
 	currentProj.xy += normal;
 	gl_Position = currentProj;
 
+	vTime = time;
 	vSide = side;
 }
