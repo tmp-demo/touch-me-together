@@ -3,6 +3,7 @@ uniform vec3 aura;
 uniform float opacity;
 
 varying float vSide;
+varying float vFog;
 
 void main() {
 	float r = abs(vSide);
@@ -11,5 +12,5 @@ void main() {
 		vec4(aura, 0.2 - 0.2 * r),
 		smoothstep(0.1, 0.15, r)
 	);
-	gl_FragColor.a *= opacity;
+	gl_FragColor.a *= opacity * vFog;
 }

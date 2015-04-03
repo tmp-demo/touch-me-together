@@ -490,7 +490,8 @@ function game() {
 		var size = Float32Array.BYTES_PER_ELEMENT * 7;
 
 		gl.useProgram(programs.line.id);
-		gl.uniformMatrix4fv(programs.line.projectionViewMatrix, false, cameraProjectionViewMatrix);
+		gl.uniformMatrix4fv(programs.line.projectionMatrix, false, cameraProjectionMatrix);
+		gl.uniformMatrix4fv(programs.line.viewMatrix, false, cameraViewMatrix);
 		gl.uniform1f(programs.line.cameraAspect, cameraAspect);
 		gl.uniform1f(programs.line.thickness, 0.1 * (1.0 + beat));
 		gl.uniform3fv(programs.line.color, [1, 1, 1]);
@@ -521,7 +522,8 @@ function game() {
 		var size = Float32Array.BYTES_PER_ELEMENT * 7;
 
 		gl.useProgram(programs.line.id);
-		gl.uniformMatrix4fv(programs.line.projectionViewMatrix, false, cameraProjectionViewMatrix);
+		gl.uniformMatrix4fv(programs.line.projectionMatrix, false, cameraProjectionMatrix);
+		gl.uniformMatrix4fv(programs.line.viewMatrix, false, cameraViewMatrix);
 		gl.uniform1f(programs.line.cameraAspect, cameraAspect);
 		gl.uniform1f(programs.line.thickness, 0.1 * (1.0 + beat));
 		gl.uniform3fv(programs.line.color, [1, 1, 1]);
