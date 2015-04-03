@@ -257,8 +257,8 @@ function game() {
 								audioStartTime = audioCtx.currentTime;
 								isPlaying = true;
 								resetNotes();
-								currentStage = 6; // TODO
-								currentStageTarget = 6;
+								currentStage = 8; // TODO
+								currentStageTarget = 8;
 
 								var gainNode = audioCtx.createGain();
 								var sourceNode = audioCtx.createBufferSource();
@@ -277,7 +277,7 @@ function game() {
 									endTime: endTime
 								};
 
-								audioStartTime -= fromMusicalTime(79); // TODO
+								audioStartTime -= fromMusicalTime(112); // TODO
 
 								pushNextSource();
 							}, function() {
