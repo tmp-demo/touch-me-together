@@ -277,8 +277,23 @@ function game() {
 					clientRatio = 1;
 					break;
 					
+				case 'rank':
+					document.getElementById("rank").style.display = "block";
+					document.getElementById("playerRank").innerHTML = message[1];
+					document.getElementById("playerCount").innerHTML = message[2];
+					break;
+					
+				case 'score':
+					send(['score', score]);
+					break;
+
 				case 'stage':
 					currentStage = message[1];
+					break;
+
+				case 'summary':
+					document.getElementById("summary").style.display = "block";
+					document.getElementById("summaryPlayerCount").innerHTML = message[1];
 					break;
 
 				default:
@@ -309,6 +324,8 @@ function game() {
 	var masterMusicalTime = 0;
 	var clientMusicalTime = 0;
 	var clientRatio = 0;
+
+	var summaryRequested = false;
 
 	function animate(keyframes) {
 		return evalKeyframe(keyframes, musicalTime);
@@ -367,6 +384,11 @@ function game() {
 			musicalTime = clientMusicalTime * clientRatio + masterMusicalTime * (1 - clientRatio);
 		}
 		
+		if (musicalTime >= map.end && isPlaying && !summaryRequested) {
+			summaryRequested = true;
+			send(['summary']);
+		}
+
 		var fTime = musicalTime % 1;
 		var beat = 1 - fTime * (1 - fTime) * 4;
 		//var beat = Math.exp(-(musicalTime % 1));
@@ -661,19 +683,31 @@ function game() {
 	}
 
 	window.addEventListener('keydown', function(event) {
+		console.log();
 		if (isPlaying) {
 			// console.log(event.which);
 			switch (event.which) {
+				case 13: // enter
+					if (document.activeElement.id !== "message")
+						document.getElementById("message").focus();
+					else
+						document.activeElement.blur();
+					break;
+
 				case 37: // left
-					currentStage = Math.max(currentStage - 1, 0);
-					send(['stage', currentStage]);
+					if (document.activeElement.id !== "message") {
+						currentStage = Math.max(currentStage - 1, 0);
+						send(['stage', currentStage]);
+					}
 					break;
 
 				case 39: // right
-					discardNextSource();
-					currentStage = Math.min(currentStage + 1, map.stages.length - 1);
-					pushNextSource();
-					send(['stage', currentStage]);
+					if (document.activeElement.id !== "message") {
+						discardNextSource();
+						currentStage = Math.min(currentStage + 1, map.stages.length - 1);
+						pushNextSource();
+						send(['stage', currentStage]);
+					}
 					break;
 			}
 		}

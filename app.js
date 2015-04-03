@@ -87,6 +87,7 @@ module.exports = function(options, callback) {
 
 	server.on('connection', function(socket) {
 		var isMaster = false;
+		socket.score = 0;
 
 		send(socket, ['stage', currentStage]);
 		
@@ -118,6 +119,26 @@ module.exports = function(options, callback) {
 				case 'stage':
 					currentStage = message[1];
 					broadcast(['stage', currentStage], socket);
+					break;
+
+				case 'summary':
+					broadcast(['score'], socket);
+					setTimeout(function() {
+						var clients = Object.keys(server.clients).map(function(id) {
+							return server.clients[id];
+						});
+						clients.sort(function(a, b) {
+							return a.score - b.score;
+						});
+						var playerCount = clients.length - 1;
+						clients.forEach(function(client, i) {
+							if (client === socket) {
+								client.send(JSON.stringify(['summary', playerCount]));
+							} else {
+								client.send(JSON.stringify(['rank', i, playerCount]));
+							}
+						});
+					}, 2000);
 					break;
 
 				default:
