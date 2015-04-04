@@ -257,8 +257,8 @@ function game() {
 								audioStartTime = audioCtx.currentTime;
 								isPlaying = true;
 								resetNotes();
-								currentStage = 5; // TODO
-								currentStageTarget = 5;
+								currentStage = 0; // TODO
+								currentStageTarget = 0;
 								send(['stage', currentStage]);
 
 								var gainNode = audioCtx.createGain();
@@ -278,7 +278,7 @@ function game() {
 									endTime: endTime
 								};
 
-								audioStartTime -= fromMusicalTime(80); // TODO
+								// audioStartTime -= fromMusicalTime(80); // TODO
 
 								pushNextSource();
 							}, function() {
@@ -292,6 +292,11 @@ function game() {
 
 						request.send();
 					}
+					break;
+					
+				case 'player':
+					if (isPlaying)
+						showFeedback("ok", "Player connected");
 					break;
 					
 				case 'pong':
@@ -743,6 +748,17 @@ function game() {
 		feedbackPool.push(element);
 	}
 
+	function showFeedback(className, feedback) {
+		var element = feedbackPool.pop();
+		element.className = "feedback " + className;
+		element.innerHTML = feedback;
+		setTimeout(function() {
+			element.className = "";
+			element.innerHTML = "";
+			feedbackPool.push(element);
+		}, 3000);
+	}
+
 	function addScore(inc) {
 		if (map.stages[currentStage].score)
 			score += inc;
@@ -763,15 +779,7 @@ function game() {
 			className = "ok";
 			feedback = "OK!";
 		}
-
-		var element = feedbackPool.pop();
-		element.className = "feedback " + className;
-		element.innerHTML = feedback;
-		setTimeout(function() {
-			element.className = "";
-			element.innerHTML = "";
-			feedbackPool.push(element);
-		}, 3000);
+		showFeedback(className, feedback);
 	}
 
 	var noteByIdentifiers = {};
