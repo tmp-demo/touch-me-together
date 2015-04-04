@@ -300,7 +300,7 @@ function game() {
 					
 				case 'pong':
 					serverHalfPing = (Date.now() - pingTime) / 2;
-					pingTimeout = setTimeout(sendPing, 100);
+					pingTimeout = setTimeout(sendPing, 500);
 
 					clientMusicalTime = masterMusicalTime;
 					masterMusicalTime = toMusicalTime((message[1] - serverHalfPing) / 1000);
@@ -428,7 +428,7 @@ function game() {
 				clientMusicalTime = masterMusicalTime;
 
 			if (clientRatio > 0)
-				clientRatio = Math.max(clientRatio - dt * 15, 0);
+				clientRatio = Math.max(clientRatio - dt * 5, 0);
 
 			musicalTime = clientMusicalTime * clientRatio + masterMusicalTime * (1 - clientRatio);
 		}
