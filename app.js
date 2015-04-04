@@ -70,6 +70,8 @@ module.exports = function(options, callback) {
 	var audioDiff = 0;
 	var currentStage = 0;
 
+	var master;
+
 	function send(socket, args) {
 		return socket.send(JSON.stringify(args));
 	}
@@ -90,6 +92,9 @@ module.exports = function(options, callback) {
 		socket.score = 0;
 
 		send(socket, ['stage', currentStage]);
+
+		if (master)
+			send(master, ['player']);
 		
 		socket.on('data', function(message) {
 			try {
@@ -103,6 +108,7 @@ module.exports = function(options, callback) {
 				case 'auth':
 					if (message[1] === config.masterPassword) {
 						isMaster = true;
+						master = socket;
 						currentStage = 0;
 						send(socket, ['master']);
 						broadcast(['stage', currentStage]);

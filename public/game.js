@@ -278,7 +278,7 @@ function game() {
 									endTime: endTime
 								};
 
-								//audioStartTime -= fromMusicalTime(240); // TODO
+								// audioStartTime -= fromMusicalTime(80); // TODO
 
 								pushNextSource();
 							}, function() {
@@ -292,6 +292,11 @@ function game() {
 
 						request.send();
 					}
+					break;
+					
+				case 'player':
+					if (isPlaying)
+						showFeedback("ok", "Player connected");
 					break;
 					
 				case 'pong':
@@ -688,7 +693,7 @@ function game() {
 		gl.uniform3fv(programs.touch.aura, touchAura);
 
 		slides.forEach(function(note) {
-			if (note.time > musicalTime + 10 || note.time < musicalTime - 20)
+			if (note.time > musicalTime + 20 || note.time < musicalTime - 20)
 				return;
 			
 			gl.uniform3fv(programs.touch.center, note.position);
@@ -699,7 +704,7 @@ function game() {
 		});
 
 		touches.forEach(function(note) {
-			if (note.time > musicalTime + 10 || note.time < musicalTime - 20)
+			if (note.time > musicalTime + 20 || note.time < musicalTime - 20)
 				return;
 
 			note.opacity.update(dt);
@@ -743,6 +748,17 @@ function game() {
 		feedbackPool.push(element);
 	}
 
+	function showFeedback(className, feedback) {
+		var element = feedbackPool.pop();
+		element.className = "feedback " + className;
+		element.innerHTML = feedback;
+		setTimeout(function() {
+			element.className = "";
+			element.innerHTML = "";
+			feedbackPool.push(element);
+		}, 3000);
+	}
+
 	function addScore(inc) {
 		if (map.stages[currentStage].score)
 			score += inc;
@@ -763,15 +779,7 @@ function game() {
 			className = "ok";
 			feedback = "OK!";
 		}
-
-		var element = feedbackPool.pop();
-		element.className = "feedback " + className;
-		element.innerHTML = feedback;
-		setTimeout(function() {
-			element.className = "";
-			element.innerHTML = "";
-			feedbackPool.push(element);
-		}, 3000);
+		showFeedback(className, feedback);
 	}
 
 	var noteByIdentifiers = {};
