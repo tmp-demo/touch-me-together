@@ -1,6 +1,6 @@
 var map = {
 	bpm: 140,
-	end: 176,
+	end: 304,
 	stages: [
         /* wait for connection */
 		{
@@ -56,6 +56,18 @@ var map = {
 			from: 208,
 			to: 240,
 			score: true,
+		},
+        /* riff 2 */
+		{
+			from: 240,
+			to: 304,
+			score: true,
+		},
+        /* end */
+		{
+			from: 304,
+			to: 320,
+			loop: true,
 		},
 	]
 };
