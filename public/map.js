@@ -1,6 +1,6 @@
 var map = {
 	bpm: 140,
-	end: 320,
+	end: 310,
 	stages: [
         /* wait for connection */
 		{

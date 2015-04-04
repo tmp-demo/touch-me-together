@@ -67,7 +67,7 @@ module.exports = function(options, callback) {
 	var httpServer = http.createServer(app);
 	// sock.installHandlers(server);
 	var server = engine.attach(httpServer);
-	var audioDiff = 0;
+	var audioDiff = - Date.now();
 	var currentStage = 0;
 
 	var master;
@@ -119,7 +119,7 @@ module.exports = function(options, callback) {
 					break;
 				
 				case 'ping':
-					if (isMaster) {
+					if (isMaster && message[1]) {
 						audioDiff = message[1] - Date.now();
 					}
 					send(socket, ['pong', audioDiff + Date.now()]);

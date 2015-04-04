@@ -52,7 +52,7 @@ function game() {
 	generateGeometry(gl);
 	
 	var lineGeometry = generateLineGeometry(gl, [-100, 0, 0], [100, 0, 0], 50);
-	var cubeGeometries = generateWireframeCubeGeometries(gl);
+	// var cubeGeometries = generateWireframeCubeGeometries(gl);
 
 	var programs = createPrograms(gl, {
 		bg: ['fullscreen', 'bg'],
@@ -206,7 +206,7 @@ function game() {
 
 	function sendPing() {
 		pingTime = Date.now();
-		if (isPlaying)
+		if (isPlaying && audioCtx)
 			send(['ping', Math.floor((audioCtx.currentTime - audioStartTime) * 1000 - serverHalfPing)]);
 		else
 			send(['ping']);
@@ -300,12 +300,13 @@ function game() {
 					break;
 					
 				case 'pong':
-					serverHalfPing = (Date.now() - pingTime) / 2000;
+					serverHalfPing = (Date.now() - pingTime) / 2;
 					pingTimeout = setTimeout(sendPing, 500);
 
 					clientMusicalTime = masterMusicalTime;
 					masterMusicalTime = toMusicalTime((message[1] - serverHalfPing) / 1000);
 					clientRatio = 1;
+					console.log(message);
 					break;
 					
 				case 'rank':
