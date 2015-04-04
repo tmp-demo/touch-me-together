@@ -229,8 +229,7 @@ function game() {
 				return console.error(err);
 			}
 			
-			if (message[0] !== 'pong' && message[0] !== 'y')
-				console.log(message);
+			console.log(message);
 			
 			switch (message[0]) {
 				case 'master':
@@ -301,12 +300,11 @@ function game() {
 					
 				case 'pong':
 					serverHalfPing = (Date.now() - pingTime) / 2;
-					pingTimeout = setTimeout(sendPing, 500);
+					pingTimeout = setTimeout(sendPing, 100);
 
 					clientMusicalTime = masterMusicalTime;
 					masterMusicalTime = toMusicalTime((message[1] - serverHalfPing) / 1000);
 					clientRatio = 1;
-					console.log(message);
 					break;
 					
 				case 'rank':
@@ -430,7 +428,7 @@ function game() {
 				clientMusicalTime = masterMusicalTime;
 
 			if (clientRatio > 0)
-				clientRatio = Math.max(clientRatio - dt * 5, 0);
+				clientRatio = Math.max(clientRatio - dt * 15, 0);
 
 			musicalTime = clientMusicalTime * clientRatio + masterMusicalTime * (1 - clientRatio);
 		}
