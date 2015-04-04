@@ -490,8 +490,8 @@ function game() {
 					note.inProgress = false;
 					note.opacity.target = 0;
 					note.trailOpacity.target = 0.2;
-				} else if (navigator.vibrate)
-					navigator.vibrate(500);
+					navigator.vibrate(0);
+				}	
 			}
 
 			note.opacity.update(dt);
@@ -664,6 +664,9 @@ function game() {
 		gl.uniform3fv(programs.track.afterAura, trackAfterAura);
 		
 		song.tracks.forEach(function(track) {
+			if (track.from > musicalTime + 100 || track.to < musicalTime - 20)
+				return;
+
 			gl.bindBuffer(gl.ARRAY_BUFFER, track.attributes);
 			gl.vertexAttribPointer(programs.track.position, 3, gl.FLOAT, false, size, 0);
 			gl.vertexAttribPointer(programs.track.direction, 3, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 3);
@@ -685,6 +688,9 @@ function game() {
 		gl.uniform3fv(programs.touch.aura, touchAura);
 
 		slides.forEach(function(note) {
+			if (note.time > musicalTime + 10 || note.time < musicalTime - 20)
+				return;
+			
 			gl.uniform3fv(programs.touch.center, note.position);
 			gl.uniform1f(programs.touch.opacity, note.opacity.current);
 			gl.uniform1f(programs.touch.scale, 2 * note.scale.current * (3 + beat));
@@ -693,6 +699,9 @@ function game() {
 		});
 
 		touches.forEach(function(note) {
+			if (note.time > musicalTime + 10 || note.time < musicalTime - 20)
+				return;
+
 			note.opacity.update(dt);
 			note.scale.update(dt);
 
@@ -831,6 +840,9 @@ function game() {
 				note.scale.target = 0.5;
 				note.firstScore = 1 - note.dt * 2;
 				noteByIdentifiers[identifier] = note;
+
+				if (navigator.vibrate)
+					navigator.vibrate(fromMusicalTime(note.segments[note.segments.length - 1].to - note.segments[0].from));
 			} else {
 				addScore(1 - note.dt * 2);
 				note.opacity.target = 0;
@@ -863,9 +875,6 @@ function game() {
 				addScore(note.firstScore);
 				// note.scale.target = 1;
 			}
-
-			if (navigator.vibrate)
-				navigator.vibrate(0);
 
 			note.opacity.target = 0;
 		}
