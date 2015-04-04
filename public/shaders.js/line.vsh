@@ -17,7 +17,7 @@ void main() {
 	vec2 currentScreen = currentProj.xy / currentProj.w;
 	currentScreen.x *= cameraAspect;
 
-	vec4 directionProj = projectionMatrix * viewMatrix * vec4(direction, 1.0);
+	vec4 directionProj = projectionMatrix * viewMatrix * modelMatrix * vec4(direction, 1.0);
 	vec2 directionScreen = directionProj.xy / directionProj.w;
 	directionScreen.x *= cameraAspect;
 

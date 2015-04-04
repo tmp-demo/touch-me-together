@@ -257,8 +257,8 @@ function game() {
 								audioStartTime = audioCtx.currentTime;
 								isPlaying = true;
 								resetNotes();
-								currentStage = 0; // TODO
-								currentStageTarget = 0;
+								currentStage = 5; // TODO
+								currentStageTarget = 5;
 								send(['stage', currentStage]);
 
 								var gainNode = audioCtx.createGain();
@@ -278,7 +278,7 @@ function game() {
 									endTime: endTime
 								};
 
-								//audioStartTime -= fromMusicalTime(240); // TODO
+								audioStartTime -= fromMusicalTime(80); // TODO
 
 								pushNextSource();
 							}, function() {
@@ -305,7 +305,7 @@ function game() {
 					
 				case 'rank':
 					document.getElementById("rank").style.display = "block";
-					document.getElementById("playerRank").innerHTML = message[1];
+					document.getElementById("playerRank").innerHTML = (message[1] + 1);
 					document.getElementById("playerCount").innerHTML = message[2];
 					break;
 					
@@ -485,7 +485,8 @@ function game() {
 					note.inProgress = false;
 					note.opacity.target = 0;
 					note.trailOpacity.target = 0.2;
-				}
+				} else if (navigator.vibrate)
+					navigator.vibrate(200);
 			}
 
 			note.opacity.update(dt);
@@ -511,6 +512,29 @@ function game() {
 		gl.disable(gl.DEPTH_TEST);
 		gl.depthMask(false);
 		
+		// TRAILS
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, geometries.quad.array);
+		
+		gl.useProgram(programs.trail.id);
+		gl.vertexAttribPointer(programs.trail.position, 2, gl.FLOAT, false, 0, 0);
+
+		gl.uniformMatrix4fv(programs.trail.projectionViewMatrix, false, trailCameraProjectionViewMatrix);
+		gl.uniform2fv(programs.trail.squareScale, squareScale);
+		gl.uniform1f(programs.trail.opacity, 0.5);
+		gl.uniform1f(programs.trail.scale, 0.1);
+
+		trailPoints.forEach(function(point) {
+			var x = point.center[0];
+			var y = point.center[1];
+			x = 0.5 - (x + musicalTime / 8) % 1; 
+			y -= 0.5;
+			gl.uniform3fv(programs.trail.center, [x, y, 0]);
+			gl.uniform3fv(programs.trail.color, point.color);
+
+			gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+		});
+
 		// CUBES
 		/*
 		var offset = 2;
@@ -557,7 +581,7 @@ function game() {
 		gl.uniform1f(programs.line.thickness, 0.1 * (1.0 + beat));
 		gl.uniform3fv(programs.line.color, [1, 1, 1]);
 		gl.uniform3fv(programs.line.aura, [1, 1, 1]);
-		gl.uniform1f(programs.line.opacity, musicalTime > 80 ? Math.max(1 - (musicalTime - 80) * 0.25, 0) : 1);
+		gl.uniform1f(programs.line.opacity, 1);
 		
 		gl.bindBuffer(gl.ARRAY_BUFFER, lineGeometry.attributes);
 		gl.vertexAttribPointer(programs.line.position, 3, gl.FLOAT, false, size, 0);
@@ -576,43 +600,24 @@ function game() {
 			gl.drawArrays(gl.TRIANGLE_STRIP, 0, lineGeometry.vertexCount);
 
 		}
-		
-		for (var i = - 10; i <= 10; ++i) {
-			var modelMatrix = mat4.create();
-			mat4.rotateY(modelMatrix, modelMatrix, Math.PI / 2);
-			mat4.translate(modelMatrix, modelMatrix, [1, y - 2 * offset, x + i * offset]);
-			gl.uniformMatrix4fv(programs.line.modelMatrix, false, modelMatrix);
-			gl.drawArrays(gl.TRIANGLE_STRIP, 0, lineGeometry.vertexCount);
 
-			mat4.translate(modelMatrix, modelMatrix, [0, 3 * offset, 0]);
-			gl.uniformMatrix4fv(programs.line.modelMatrix, false, modelMatrix);
-			gl.drawArrays(gl.TRIANGLE_STRIP, 0, lineGeometry.vertexCount);
+		if (musicalTime < 80) {
+			var margin = musicalTime > 48 ? (musicalTime - 48) * 0.5 : 0;
+			
+			for (var i = - 10; i <= 10; ++i) {
+				var modelMatrix = mat4.create();
+				mat4.rotateY(modelMatrix, modelMatrix, Math.PI / 2);
+				mat4.translate(modelMatrix, modelMatrix, [1, y - 2 * offset + margin, x + i * offset]);
+				gl.uniformMatrix4fv(programs.line.modelMatrix, false, modelMatrix);
+				gl.drawArrays(gl.TRIANGLE_STRIP, 0, lineGeometry.vertexCount);
 
+				mat4.translate(modelMatrix, modelMatrix, [0, 3 * offset - 2 * margin, 0]);
+				gl.uniformMatrix4fv(programs.line.modelMatrix, false, modelMatrix);
+				gl.drawArrays(gl.TRIANGLE_STRIP, 0, lineGeometry.vertexCount);
+
+			}
 		}
 		
-		// TRAILS
-
-		gl.bindBuffer(gl.ARRAY_BUFFER, geometries.quad.array);
-		
-		gl.useProgram(programs.trail.id);
-		gl.vertexAttribPointer(programs.trail.position, 2, gl.FLOAT, false, 0, 0);
-
-		gl.uniformMatrix4fv(programs.trail.projectionViewMatrix, false, trailCameraProjectionViewMatrix);
-		gl.uniform2fv(programs.trail.squareScale, squareScale);
-		gl.uniform1f(programs.trail.opacity, 0.5);
-		gl.uniform1f(programs.trail.scale, 0.2);
-
-		trailPoints.forEach(function(point) {
-			var x = point.center[0];
-			var y = point.center[1];
-			x = 0.5 - (x + musicalTime / 8) % 1; 
-			y -= 0.5;
-			gl.uniform3fv(programs.trail.center, [x, y, 0]);
-			gl.uniform3fv(programs.trail.color, point.color);
-
-			gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
-		});
-
 		// SLIDES
 
 		var size = Float32Array.BYTES_PER_ELEMENT * 8;
@@ -677,7 +682,7 @@ function game() {
 		slides.forEach(function(note) {
 			gl.uniform3fv(programs.touch.center, note.position);
 			gl.uniform1f(programs.touch.opacity, note.opacity.current);
-			gl.uniform1f(programs.touch.scale, note.scale.current * (3 + beat));
+			gl.uniform1f(programs.touch.scale, 2 * note.scale.current * (3 + beat));
 
 			gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
 		});
@@ -688,7 +693,7 @@ function game() {
 
 			gl.uniform3fv(programs.touch.center, note.position);
 			gl.uniform1f(programs.touch.opacity, note.opacity.current);
-			gl.uniform1f(programs.touch.scale, note.scale.current * (3 + beat));
+			gl.uniform1f(programs.touch.scale, 2 * note.scale.current * (3 + beat));
 
 			gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
 		});
@@ -700,7 +705,7 @@ function game() {
 
 		gl.uniformMatrix4fv(programs.cursor.projectionViewMatrix, false, cameraProjectionViewMatrix);
 		gl.uniform2fv(programs.cursor.squareScale, squareScale);
-		gl.uniform1f(programs.cursor.scale, 0.1 * (3 + beat));
+		gl.uniform1f(programs.cursor.scale, 0.4 * (3 + beat));
 		gl.uniform3fv(programs.cursor.color, cursorColor);
 		gl.uniform3fv(programs.cursor.aura, cursorAura);
 
@@ -853,6 +858,9 @@ function game() {
 				addScore(note.firstScore + 0.5 - dt);
 				// note.scale.target = 1;
 			}
+
+			if (navigator.vibrate)
+				navigator.vibrate(0);
 
 			note.opacity.target = 0;
 		}

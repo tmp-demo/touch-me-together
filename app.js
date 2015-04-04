@@ -126,11 +126,13 @@ module.exports = function(options, callback) {
 					setTimeout(function() {
 						var clients = Object.keys(server.clients).map(function(id) {
 							return server.clients[id];
+						}).filter(function(client) {
+							return client.score > 1 && client !== socket;
 						});
 						clients.sort(function(a, b) {
-							return a.score - b.score;
+							return b.score - a.score;
 						});
-						var playerCount = clients.length - 1;
+						var playerCount = clients.length;
 						clients.forEach(function(client, i) {
 							if (client === socket) {
 								client.send(JSON.stringify(['summary', playerCount]));
