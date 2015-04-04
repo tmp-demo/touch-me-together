@@ -257,8 +257,8 @@ function game() {
 								audioStartTime = audioCtx.currentTime;
 								isPlaying = true;
 								resetNotes();
-								currentStage = 0; // TODO
-								currentStageTarget = 0;
+								currentStage = 5; // TODO
+								currentStageTarget = 5;
 								send(['stage', currentStage]);
 
 								var gainNode = audioCtx.createGain();
@@ -278,7 +278,7 @@ function game() {
 									endTime: endTime
 								};
 
-								//audioStartTime -= fromMusicalTime(240); // TODO
+								audioStartTime -= fromMusicalTime(80); // TODO
 
 								pushNextSource();
 							}, function() {
@@ -688,7 +688,7 @@ function game() {
 		gl.uniform3fv(programs.touch.aura, touchAura);
 
 		slides.forEach(function(note) {
-			if (note.time > musicalTime + 10 || note.time < musicalTime - 20)
+			if (note.time > musicalTime + 100 || note.time < musicalTime - 20)
 				return;
 			
 			gl.uniform3fv(programs.touch.center, note.position);
@@ -699,9 +699,9 @@ function game() {
 		});
 
 		touches.forEach(function(note) {
-			if (note.time > musicalTime + 10 || note.time < musicalTime - 20)
+			if (note.time > musicalTime + 100 || note.time < musicalTime - 20)
 				return;
-
+			
 			note.opacity.update(dt);
 			note.scale.update(dt);
 
