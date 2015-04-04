@@ -688,7 +688,7 @@ function game() {
 		gl.uniform3fv(programs.touch.aura, touchAura);
 
 		slides.forEach(function(note) {
-			if (note.time > musicalTime + 100 || note.time < musicalTime - 20)
+			if (note.time > musicalTime + 20 || note.time < musicalTime - 20)
 				return;
 			
 			gl.uniform3fv(programs.touch.center, note.position);
@@ -699,9 +699,9 @@ function game() {
 		});
 
 		touches.forEach(function(note) {
-			if (note.time > musicalTime + 100 || note.time < musicalTime - 20)
+			if (note.time > musicalTime + 20 || note.time < musicalTime - 20)
 				return;
-			
+
 			note.opacity.update(dt);
 			note.scale.update(dt);
 
