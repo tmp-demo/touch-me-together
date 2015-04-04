@@ -84,9 +84,9 @@ function game() {
 
 	function updateCameraProjectionMatrix() {
 		if (cameraAspect > 1)
-			mat4.perspective(cameraProjectionMatrix, cameraFov, cameraAspect, 0.1, 50);
+			mat4.perspective(cameraProjectionMatrix, cameraFov, cameraAspect, 0.1, 100);
 		else
-			mat4.perspectiveX(cameraProjectionMatrix, cameraFov, cameraAspect, 0.1, 50);
+			mat4.perspectiveX(cameraProjectionMatrix, cameraFov, cameraAspect, 0.1, 100);
 
 		mat4.multiply(trailCameraProjectionViewMatrix, cameraProjectionMatrix, trailCameraViewMatrix);
 	}
@@ -301,7 +301,7 @@ function game() {
 					
 				case 'pong':
 					serverHalfPing = (Date.now() - pingTime) / 2000;
-					pingTimeout = setTimeout(sendPing, 200);
+					pingTimeout = setTimeout(sendPing, 500);
 
 					clientMusicalTime = masterMusicalTime;
 					masterMusicalTime = toMusicalTime((message[1] - serverHalfPing) / 1000);
@@ -645,6 +645,9 @@ function game() {
 		slides.forEach(function(slide) {
 			gl.uniform1f(programs.slide.trailOpacity, slide.trailOpacity.current);
 			slide.segments.forEach(function(segment) {
+				if (segment.from > musicalTime + 20 || segment.to < musicalTime - 10)
+					return;
+
 				gl.bindBuffer(gl.ARRAY_BUFFER, segment.attributes);
 				gl.vertexAttribPointer(programs.slide.position, 3, gl.FLOAT, false, size, 0);
 				gl.vertexAttribPointer(programs.slide.direction, 3, gl.FLOAT, false, size, Float32Array.BYTES_PER_ELEMENT * 3);
@@ -669,7 +672,7 @@ function game() {
 		gl.uniform3fv(programs.track.afterAura, trackAfterAura);
 		
 		song.tracks.forEach(function(track) {
-			if (track.from > musicalTime + 100 || track.to < musicalTime - 20)
+			if (track.from > musicalTime + 20 || track.to < musicalTime - 10)
 				return;
 
 			gl.bindBuffer(gl.ARRAY_BUFFER, track.attributes);
@@ -693,7 +696,7 @@ function game() {
 		gl.uniform3fv(programs.touch.aura, touchAura);
 
 		slides.forEach(function(note) {
-			if (note.time > musicalTime + 20 || note.time < musicalTime - 20)
+			if (note.time > musicalTime + 20 || note.time < musicalTime - 10)
 				return;
 			
 			gl.uniform3fv(programs.touch.center, note.position);
@@ -704,7 +707,7 @@ function game() {
 		});
 
 		touches.forEach(function(note) {
-			if (note.time > musicalTime + 20 || note.time < musicalTime - 20)
+			if (note.time > musicalTime + 20 || note.time < musicalTime - 10)
 				return;
 
 			note.opacity.update(dt);
