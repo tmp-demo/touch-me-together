@@ -259,6 +259,7 @@ function game() {
 								resetNotes();
 								currentStage = 0; // TODO
 								currentStageTarget = 0;
+								send(['stage', currentStage]);
 
 								var gainNode = audioCtx.createGain();
 								var sourceNode = audioCtx.createBufferSource();
@@ -772,42 +773,48 @@ function game() {
 	function touchStart(desc, identifier, latency) {
 		var time = musicalTime - latency;
 
-		song.notes.sort(function(a, b) {
-			return Math.abs(a.time - time) - Math.abs(b.time - time);
-		});
-
 		var clipPosition = vec4.create();
 		fingerPosition = updateFingerPosition(desc, identifier);
 
-		for (var i = 0, n = song.notes.length; i < n; ++i) {
-			var note = song.notes[i];
+		var notes = [];
+		song.notes.forEach(function(note) {
 			if (note.scored)
-				continue;
+				return;
 
 			var dt = Math.abs(note.time - time);
-			if (dt > 0.5)
-				break;
+			if (dt <= 0.5) {
+				vec4.transformMat4(clipPosition, [note.position[0], note.position[1], note.position[2], 1], cameraProjectionViewMatrix);
+				vec3.scale(clipPosition, clipPosition, 1 / clipPosition[3]);
+				var squaredDistance = vec2.squaredDistance(clipPosition, fingerPosition);
 
-			vec4.transformMat4(clipPosition, [note.position[0], note.position[1], note.position[2], 1], cameraProjectionViewMatrix);
-			vec3.scale(clipPosition, clipPosition, 1 / clipPosition[3]);
-			//if (vec2.squaredDistance(clipPosition, fingerPosition) < 0.2)
-			{
-				note.scored = true;
-				console.log(fromMusicalTime(note.time - time));
-
-				if (note.segments) {
-					note.inProgress = true;
-					note.identifier = identifier;
-					note.scale.target = 0.5;
-					note.firstScore = 0.5 - dt;
-					noteByIdentifiers[identifier] = note;
-				} else {
-					addScore(1 - dt * 2);
-					note.opacity.target = 0;
-					note.scale.target = 0.5;
+				//if (note.squaredDistance < 0.2)
+				{
+					note.dt = dt;
+					note.score = dt + squaredDistance;
+					notes.push(note);
 				}
+			}
+		});
 
-				break;
+		if (notes.length) {
+			notes.sort(function(a, b) {
+				return a.score - b.score;
+			});
+
+			var note = notes[0];
+			note.scored = true;
+			console.log(fromMusicalTime(note.dt));
+
+			if (note.segments) {
+				note.inProgress = true;
+				note.identifier = identifier;
+				note.scale.target = 0.5;
+				note.firstScore = 0.5 - note.dt;
+				noteByIdentifiers[identifier] = note;
+			} else {
+				addScore(1 - note.dt * 2);
+				note.opacity.target = 0;
+				note.scale.target = 0.5;
 			}
 		}
 	}
