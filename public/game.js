@@ -478,10 +478,9 @@ function game() {
 
 			if (note.inProgress) {
 				var fingerPosition = fingerPositions[note.identifier];
-				var clipPosition = vec4.create();
-				vec4.transformMat4(clipPosition, [note.position[0], note.position[1], note.position[2], 1], cameraProjectionViewMatrix);
-				vec3.scale(clipPosition, clipPosition, 1 / clipPosition[3]);
-				if (vec2.squaredDistance(clipPosition, fingerPosition) > 0.2)
+				updateClipPosition(note);
+				// console.log(clipPosition, fingerPosition, vec2.squaredDistance(clipPosition, fingerPosition))
+				if (vec2.squaredDistance(clipPosition, fingerPosition) > maxSquaredDistance)
 				{
 					note.inProgress = false;
 					note.opacity.target = 0;
@@ -726,7 +725,8 @@ function game() {
 	}
 
 	function addScore(inc) {
-		score += inc;
+		if (map.stages[currentStage].score)
+			score += inc;
 
 		var className, feedback;
 		if (inc > 0.75) {
@@ -761,7 +761,7 @@ function game() {
 	function updateFingerPosition(desc, identifier) {
 		var width = window.innerWidth;
 		var height = window.innerHeight;
-		var fingerPosition = [desc.pageX / width * 2 - 1, desc.pageY / height * 2 - 1];
+		var fingerPosition = [desc.pageX / width * 2 - 1, -(desc.pageY / height * 2 - 1)];
 		if (width > height)
 			fingerPosition[0] *= cameraAspect;
 		else
@@ -770,11 +770,22 @@ function game() {
 		return fingerPosition;
 	}
 
+	var clipPosition = vec4.create();
+	var maxSquaredDistance = 0.2;
+	function updateClipPosition(note) {
+		vec4.transformMat4(clipPosition, [note.position[0], note.position[1], note.position[2], 1], cameraProjectionViewMatrix);
+		vec3.scale(clipPosition, clipPosition, 1 / clipPosition[3]);
+		if (innerWidth > innerHeight)
+			clipPosition[0] *= cameraAspect;
+		else
+			clipPosition[1] /= cameraAspect;
+	}
+
 	function touchStart(desc, identifier, latency) {
 		var time = musicalTime - latency;
 
-		var clipPosition = vec4.create();
 		fingerPosition = updateFingerPosition(desc, identifier);
+		// console.log(fingerPosition);
 
 		var notes = [];
 		song.notes.forEach(function(note) {
@@ -783,11 +794,10 @@ function game() {
 
 			var dt = Math.abs(note.time - time);
 			if (dt <= 0.5) {
-				vec4.transformMat4(clipPosition, [note.position[0], note.position[1], note.position[2], 1], cameraProjectionViewMatrix);
-				vec3.scale(clipPosition, clipPosition, 1 / clipPosition[3]);
+				updateClipPosition(note);
 				var squaredDistance = vec2.squaredDistance(clipPosition, fingerPosition);
-
-				//if (note.squaredDistance < 0.2)
+				// console.log(clipPosition, squaredDistance)
+				if (squaredDistance < maxSquaredDistance)
 				{
 					note.dt = dt;
 					note.score = dt + squaredDistance;
@@ -803,7 +813,7 @@ function game() {
 
 			var note = notes[0];
 			note.scored = true;
-			console.log(fromMusicalTime(note.dt));
+			// console.log(fromMusicalTime(note.dt));
 
 			if (note.segments) {
 				note.inProgress = true;
@@ -836,6 +846,7 @@ function game() {
 			note.inProgress = false;
 
 			var dt = Math.abs(note.segments[note.segments.length - 1].to - time);
+			// console.log(dt);
 			if (dt > 0.5) {
 				note.trailOpacity.target = 0.2;
 			} else {
