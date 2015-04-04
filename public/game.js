@@ -486,7 +486,7 @@ function game() {
 					note.opacity.target = 0;
 					note.trailOpacity.target = 0.2;
 				} else if (navigator.vibrate)
-					navigator.vibrate(200);
+					navigator.vibrate(500);
 			}
 
 			note.opacity.update(dt);
@@ -824,7 +824,7 @@ function game() {
 				note.inProgress = true;
 				note.identifier = identifier;
 				note.scale.target = 0.5;
-				note.firstScore = 0.5 - note.dt;
+				note.firstScore = 1 - note.dt * 2;
 				noteByIdentifiers[identifier] = note;
 			} else {
 				addScore(1 - note.dt * 2);
@@ -850,12 +850,12 @@ function game() {
 
 			note.inProgress = false;
 
-			var dt = Math.abs(note.segments[note.segments.length - 1].to - time);
-			// console.log(dt);
-			if (dt > 0.5) {
+			var ratio = (time - note.segments[0].from) / (note.segments[note.segments.length - 1].to - note.segments[0].from);
+			// console.log(ratio);
+			if (ratio < 0.8) {
 				note.trailOpacity.target = 0.2;
 			} else {
-				addScore(note.firstScore + 0.5 - dt);
+				addScore(note.firstScore);
 				// note.scale.target = 1;
 			}
 
