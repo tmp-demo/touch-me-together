@@ -304,13 +304,16 @@ function game() {
 					break;
 					
 				case 'rank':
-					document.getElementById("rank").style.display = "block";
-					document.getElementById("playerRank").innerHTML = (message[1] + 1);
-					document.getElementById("playerCount").innerHTML = message[2];
+					if (!isPlaying) {
+						document.getElementById("rank").style.display = "block";
+						document.getElementById("playerRank").innerHTML = (message[1] + 1);
+						document.getElementById("playerCount").innerHTML = message[2];
+					}
 					break;
 					
 				case 'score':
-					send(['score', score]);
+					if (!isPlaying)
+						send(['score', score]);
 					break;
 
 				case 'stage':
@@ -318,8 +321,10 @@ function game() {
 					break;
 
 				case 'summary':
-					document.getElementById("summary").style.display = "block";
-					document.getElementById("summaryPlayerCount").innerHTML = message[1];
+					if (isPlaying) {
+						document.getElementById("summary").style.display = "block";
+						document.getElementById("summaryPlayerCount").innerHTML = message[1];
+					}
 					break;
 
 				default:
@@ -486,7 +491,7 @@ function game() {
 					note.opacity.target = 0;
 					note.trailOpacity.target = 0.2;
 				} else if (navigator.vibrate)
-					navigator.vibrate(200);
+					navigator.vibrate(500);
 			}
 
 			note.opacity.update(dt);
@@ -824,7 +829,7 @@ function game() {
 				note.inProgress = true;
 				note.identifier = identifier;
 				note.scale.target = 0.5;
-				note.firstScore = 0.5 - note.dt;
+				note.firstScore = 1 - note.dt * 2;
 				noteByIdentifiers[identifier] = note;
 			} else {
 				addScore(1 - note.dt * 2);
@@ -850,12 +855,12 @@ function game() {
 
 			note.inProgress = false;
 
-			var dt = Math.abs(note.segments[note.segments.length - 1].to - time);
-			// console.log(dt);
-			if (dt > 0.5) {
+			var ratio = (time - note.segments[0].from) / (note.segments[note.segments.length - 1].to - note.segments[0].from);
+			// console.log(ratio);
+			if (ratio < 0.8) {
 				note.trailOpacity.target = 0.2;
 			} else {
-				addScore(note.firstScore + 0.5 - dt);
+				addScore(note.firstScore);
 				// note.scale.target = 1;
 			}
 

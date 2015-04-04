@@ -116,6 +116,11 @@ module.exports = function(options, callback) {
 					send(socket, ['pong', audioDiff + Date.now()]);
 					break;
 				
+				case 'score':
+					if (!isMaster)
+						socket.score = message[1];
+					break;
+
 				case 'stage':
 					currentStage = message[1];
 					broadcast(['stage', currentStage], socket);
@@ -124,22 +129,21 @@ module.exports = function(options, callback) {
 				case 'summary':
 					broadcast(['score'], socket);
 					setTimeout(function() {
+						socket.score = 0;
 						var clients = Object.keys(server.clients).map(function(id) {
 							return server.clients[id];
 						}).filter(function(client) {
-							return client.score > 1 && client !== socket;
+							return client.score > 1;
 						});
 						clients.sort(function(a, b) {
 							return b.score - a.score;
 						});
 						var playerCount = clients.length;
 						clients.forEach(function(client, i) {
-							if (client === socket) {
-								client.send(JSON.stringify(['summary', playerCount]));
-							} else {
-								client.send(JSON.stringify(['rank', i, playerCount]));
-							}
+							console.log("rank %s: %d", client.id, i);
+							client.send(JSON.stringify(['rank', i, playerCount]));
 						});
+						socket.send(JSON.stringify(['summary', playerCount]));
 					}, 2000);
 					break;
 
@@ -148,53 +152,12 @@ module.exports = function(options, callback) {
 					break;
 			}
 		});
-	});
-/*
-	var conns = [];
 
-	function send(conn, args) {
-		return conn.write(JSON.stringify(args));
-	}
-
-	function broadcast(args, except) {
-		var message = JSON.stringify(args);
-		
-		conns.forEach(function(conn) {
-			if (conn && i !== except) {
-				conn.write(message);
-			}
-		});
-	};
-
-	sock.on('connection', function(conn) {
-		conns.push(conn);
-
-		conn.on('data', function(data) {
-			try {
-				var message = JSON.parse(data);
-			} catch (err) {
-				console.warn(data);
-				return console.error(err);
-			}
-			
-			switch (message[0]) {
-				case 'ping':
-					send(conn, ['pong']);
-				conn.write("e", "f")
-					break;
-				
-				default:
-					console.log('unknown', message);
-					break;
-			}
-		});
-		
-		conn.on('close', function() {
-			var index = conns.indexOf(conn);
-			conns.splice(index, 1);
+		socket.on('close', function() {
+			socket.score = 0;
 		});
 	});
-*/
+
 	return callback(null, httpServer, app);
 };
 

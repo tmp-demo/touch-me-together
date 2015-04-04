@@ -9,7 +9,7 @@ varying float vSide;
 
 void main() {
 	float r = abs(vSide);
-	float t = smoothstep(currentTime - 0.05, currentTime + 0.05, vTime);
+	float t = step(currentTime, vTime);
 	gl_FragColor = mix(
 		mix(
 			vec4(afterColor, 0.8),
