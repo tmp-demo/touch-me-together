@@ -304,13 +304,16 @@ function game() {
 					break;
 					
 				case 'rank':
-					document.getElementById("rank").style.display = "block";
-					document.getElementById("playerRank").innerHTML = (message[1] + 1);
-					document.getElementById("playerCount").innerHTML = message[2];
+					if (!isPlaying) {
+						document.getElementById("rank").style.display = "block";
+						document.getElementById("playerRank").innerHTML = (message[1] + 1);
+						document.getElementById("playerCount").innerHTML = message[2];
+					}
 					break;
 					
 				case 'score':
-					send(['score', score]);
+					if (!isPlaying)
+						send(['score', score]);
 					break;
 
 				case 'stage':
@@ -318,8 +321,10 @@ function game() {
 					break;
 
 				case 'summary':
-					document.getElementById("summary").style.display = "block";
-					document.getElementById("summaryPlayerCount").innerHTML = message[1];
+					if (isPlaying) {
+						document.getElementById("summary").style.display = "block";
+						document.getElementById("summaryPlayerCount").innerHTML = message[1];
+					}
 					break;
 
 				default:
