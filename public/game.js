@@ -51,7 +51,7 @@ function game() {
 	
 	generateGeometry(gl);
 	
-	var lineGeometry = generateLineGeometry(gl, [-100, 0, 0], [100, 0, 0], 25);
+	var lineGeometry = generateLineGeometry(gl, [-100, 0, 0], [100, 0, 0], 50);
 	var cubeGeometries = generateWireframeCubeGeometries(gl);
 
 	var programs = createPrograms(gl, {
@@ -84,9 +84,9 @@ function game() {
 
 	function updateCameraProjectionMatrix() {
 		if (cameraAspect > 1)
-			mat4.perspective(cameraProjectionMatrix, cameraFov, cameraAspect, 0.1, 100);
+			mat4.perspective(cameraProjectionMatrix, cameraFov, cameraAspect, 0.1, 50);
 		else
-			mat4.perspectiveX(cameraProjectionMatrix, cameraFov, cameraAspect, 0.1, 100);
+			mat4.perspectiveX(cameraProjectionMatrix, cameraFov, cameraAspect, 0.1, 50);
 
 		mat4.multiply(trailCameraProjectionViewMatrix, cameraProjectionMatrix, trailCameraViewMatrix);
 	}
@@ -899,14 +899,14 @@ function game() {
 					else
 						document.activeElement.blur();
 					break;
-
+/*
 				case 37: // left
 					if (document.activeElement.id !== "message") {
 						currentStage = currentStageTarget = Math.max(currentStage - 1, 0);
 						send(['stage', currentStage]);
 					}
 					break;
-
+*/
 				case 39: // right
 					if (document.activeElement.id !== "message") {
 						discardNextSource();

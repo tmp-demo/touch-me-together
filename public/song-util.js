@@ -26,11 +26,11 @@ function generateGeometry(gl) {
 		var r0 = vec3.create();
 		var r1 = vec3.create();
 
-		var div = track.resolution;
+		var div = track.resolution * 4;
 		for (var i = 0; i <= div; ++i) {
 			var t = i / div;
 			var at = track.from + (track.to - track.from) * t;
-			var c = [bezier(track, 0, t), bezier(track, 1, t), bezier(track, 2, t)];
+			var c = [bezierLine(track, 0, t), bezierLine(track, 1, t), bezierLine(track, 2, t)];
 			var a = [bezier1(track, 0, t), bezier1(track, 1, t), bezier1(track, 2, t)];
 			vec3.normalize(a, a);
 			vec3.add(a, a, c);
@@ -57,11 +57,11 @@ function generateGeometry(gl) {
 				var r0 = vec3.create();
 				var r1 = vec3.create();
 
-				var div = segment.resolution;
+				var div = segment.resolution * 4;
 				for (var i = 0; i <= div; ++i) {
 					var t = i / div;
 					var at = segment.from + (segment.to - segment.from) * t;
-					var c = [bezier(segment, 0, t), bezier(segment, 1, t), bezier(segment, 2, t)];
+					var c = [bezierLine(segment, 0, t), bezierLine(segment, 1, t), bezierLine(segment, 2, t)];
 					var a = [bezier1(segment, 0, t), bezier1(segment, 1, t), bezier1(segment, 2, t)];
 					vec3.normalize(a, a);
 					vec3.add(a, a, c);

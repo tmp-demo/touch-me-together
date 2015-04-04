@@ -112,6 +112,9 @@ module.exports = function(options, callback) {
 						currentStage = 0;
 						send(socket, ['master']);
 						broadcast(['stage', currentStage]);
+						Object.keys(server.clients).forEach(function(id) {
+							server.clients[id].score = 0;
+						});
 					}
 					break;
 				
@@ -157,10 +160,6 @@ module.exports = function(options, callback) {
 					console.log('unknown', message);
 					break;
 			}
-		});
-
-		socket.on('close', function() {
-			socket.score = 0;
 		});
 	});
 
