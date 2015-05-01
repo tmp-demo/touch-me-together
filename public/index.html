@@ -9,7 +9,7 @@
 	box-sizing: border-box;
 }
 
-body {
+body, input, button {
 	margin: 0;
 	color: white;
 	background: black;
@@ -18,7 +18,7 @@ body {
 	font-weight: bold;
 }
 
-#game, canvas, #rank, #message, #summary {
+#game, canvas, #name, #rank, #message, #summary {
 	position: absolute;
 	left: 0;
 	top: 0;
@@ -89,17 +89,39 @@ body {
 	font-size: 40px;
 }
 
-#rank, #message, #summary {
+#name, #rank, #message, #summary {
+	display: none;
 	padding-top: 15%;
 	font-size: 50px;
 }
 
-#rank, #summary {
-	display: none;
-}
-
 #message {
 	outline: none;
+}
+
+#leaderboard {
+	margin-top: 50px;
+}
+
+input, button {
+	border-radius: 4px;
+	padding: 8px;
+}
+
+input {
+	background: transparent;
+	color: #ff7808;
+	font-size: 40px;
+	outline-color: #0078ff;
+	max-width: 95%;
+	text-shadow: 0px 0px 10px #ff6363;
+}
+
+button {
+	background: white;
+	color: black;
+	font-size: 40px;
+	margin-top: 50px;
 }
 
 strong {
@@ -123,6 +145,14 @@ em {
 		<div id="summary">
 			<div>Congrats to the</div>
 			<div><strong id="summaryPlayerCount">?</strong> players!</div>
+			<div id="leaderboard"></div>
+		</div>
+		<div id="name">
+			<form id="nameForm">
+				<div>Pick a name</div>
+				<div><input id="nameInput" type="text" name="name"/></div>
+				<div><button type="submit">Join the game</button></div>
+			</form>
 		</div>
 		<div id="message" contenteditable></div>
    		<script src="/engine.io.js"></script>

@@ -151,6 +151,7 @@ function game() {
 	var socket;
 	var isMaster = false;
 	var isPlaying = false;
+	var hasJoined = false;
 
 	var currentChunk, nextChunk;
 	var fadeConstant = 0.2;
@@ -218,6 +219,17 @@ function game() {
 		socket.on('open', function() {
 			if (location.hash)
 				send(['auth', location.hash.substr(1)]);
+			else {
+				document.getElementById("name").style.display = 'block';
+				document.getElementById("nameInput").focus();
+				document.getElementById("nameForm").addEventListener('submit', function(event) {
+					event.preventDefault();
+					var name = document.getElementById("nameInput").value.trim() || "Anonymous";
+					send(['name', name]);
+					document.getElementById("name").style.display = 'none';
+					hasJoined = true;
+				});
+			}
 			sendPing();
 		});
 		
@@ -235,6 +247,8 @@ function game() {
 				case 'master':
 					if (!isMaster) {
 						isMaster = true;
+						hasJoined = true;
+						document.getElementById("message").style.display = 'block';
 
 						audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -295,7 +309,7 @@ function game() {
 					
 				case 'player':
 					if (isPlaying)
-						showFeedback("ok", "Player connected");
+						showFeedback("ok", message[1] + " joined");
 					break;
 					
 				case 'pong':
@@ -312,6 +326,14 @@ function game() {
 						document.getElementById("rank").style.display = "block";
 						document.getElementById("playerRank").innerHTML = (message[1] + 1);
 						document.getElementById("playerCount").innerHTML = message[2];
+					}
+					break;
+					
+				case 'rankName':
+					if (isPlaying) {
+						var element = document.createElement('div');
+						element.innerHTML = "#" + (message[1] + 1) + " <em>" + message[2] + "</em>";
+						document.getElementById("leaderboard").appendChild(element);
 					}
 					break;
 					
@@ -891,7 +913,6 @@ function game() {
 	}
 
 	window.addEventListener('keydown', function(event) {
-		console.log();
 		if (isPlaying) {
 			// console.log(event.which);
 			switch (event.which) {
@@ -922,6 +943,7 @@ function game() {
 	}, true);
 
 	window.addEventListener("touchstart", function(event) {
+		if (!hasJoined) return;
 		event.preventDefault();
 		for (var i = 0, n = event.changedTouches.length; i < n; ++i) {
 			var touch = event.changedTouches[i];
@@ -930,6 +952,7 @@ function game() {
 	}, false);
 
 	window.addEventListener("touchend", function(event) {
+		if (!hasJoined) return;
 		event.preventDefault();
 		for (var i = 0, n = event.changedTouches.length; i < n; ++i) {
 			var touch = event.changedTouches[i];
@@ -938,6 +961,7 @@ function game() {
 	}, false);
 
 	window.addEventListener("touchmove", function(event) {
+		if (!hasJoined) return;
 		event.preventDefault();
 		for (var i = 0, n = event.changedTouches.length; i < n; ++i) {
 			var touch = event.changedTouches[i];
@@ -946,16 +970,19 @@ function game() {
 	}, false);
 
 	window.addEventListener("mousedown", function(event) {
+		if (!hasJoined) return;
 		event.preventDefault();
 		return touchStart(event, "mouse", 0);
 	}, false);
 
 	window.addEventListener("mouseup", function(event) {
+		if (!hasJoined) return;
 		event.preventDefault();
 		return touchEnd(event, "mouse", 0);
 	}, false);
 
 	window.addEventListener("mousemove", function(event) {
+		if (!hasJoined) return;
 		event.preventDefault();
 		return touchMove(event, "mouse", 0);
 	}, false);

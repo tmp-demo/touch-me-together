@@ -16,10 +16,7 @@ module.exports = function(options, callback) {
 	
 	if (options.trustProxy)
 		app.enable('trust proxy');
-
-	if (app.get('env') === 'development')
-		app.use(morgan('dev'));
-		
+	
 	// app.use(bodyParser.json());
 	
 	app.get("/shaders.js", function(req, res, next) {
@@ -92,9 +89,6 @@ module.exports = function(options, callback) {
 		socket.score = 0;
 
 		send(socket, ['stage', currentStage]);
-
-		if (master)
-			send(master, ['player']);
 		
 		socket.on('data', function(message) {
 			try {
@@ -118,6 +112,12 @@ module.exports = function(options, callback) {
 					}
 					break;
 				
+				case 'name':
+					socket.name = message[1].replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+					if (master)
+						send(master, ['player', socket.name]);
+					break;
+					
 				case 'ping':
 					if (isMaster && message[1]) {
 						audioDiff = message[1] - Date.now();
@@ -148,11 +148,13 @@ module.exports = function(options, callback) {
 							return b.score - a.score;
 						});
 						var playerCount = clients.length;
+						socket.send(JSON.stringify(['summary', playerCount]));
 						clients.forEach(function(client, i) {
-							console.log("rank %s: %d", client.id, i);
+							console.log("#%d: %s", i, client.name);
+							if (i < 3)
+								socket.send(JSON.stringify(['rankName', i, client.name]));
 							client.send(JSON.stringify(['rank', i, playerCount]));
 						});
-						socket.send(JSON.stringify(['summary', playerCount]));
 					}, 2000);
 					break;
 
